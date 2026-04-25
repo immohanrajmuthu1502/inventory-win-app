@@ -68,6 +68,10 @@ const SimpleProductForm = ({ onSave, editingProduct }) => {
       price: "",
       category: "No Category",
       minStock: "",
+      pricing: {
+        single: 0,
+        packs: { 2: 0, 3: 0, 5: 0, 10: 0 },
+      },
     });
 
     setErrors({});

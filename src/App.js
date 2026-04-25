@@ -12,6 +12,7 @@ import Reports from "./pages/Reports";
 import StockAlert from "./pages/StockAlert";
 import Settings from "./pages/Settings";
 import AddProduct from "./pages/AddProduct";
+import Pricing from "./pages/Pricing";
 
 function App() {
   const [products, setProducts] = useState(() => {
@@ -187,6 +188,9 @@ const totalProfit = products.reduce(
             setEditingProduct={setEditingProduct}
           />
         } />
+        <Route path="/pricing" element={
+  <Pricing products={products} setProducts={setProducts} />
+} />
         <Route path="/billing" element={<Billing />} />
         <Route path="/reports" element={<Reports products={products} />} />
         <Route path="/alerts" element={<StockAlert products={products} />} />

@@ -35,6 +35,7 @@ const Header = () => {
       <Link to="/reports" style={menuStyle("/reports")}>Reports</Link>
       <Link to="/alerts" style={menuStyle("/alerts")}>Stock Alert</Link>
       <Link to="/settings" style={menuStyle("/settings")}>Settings</Link>
+      <Link to="/pricing" style={menuStyle("/pricing")}>Pricing</Link>
       <div style={{ marginLeft: "auto" }}>
             <button onClick={() => navigate("/add-product")} style={{ padding: "8px 16px", cursor: "pointer" }}>+ Add Product</button>
        </div>
