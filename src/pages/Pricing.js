@@ -38,7 +38,10 @@ const Pricing = ({ products, setProducts }) => {
     setPacks((prev) => ({ ...prev, [size]: value }));
   };
 
-  const singlePrice = Number(single || 0);
+  const singlePrice =
+  single !== ""
+    ? Number(single)
+    : selectedProduct?.pricing?.single || 0;
 
   const handleSave = () => {
     if (!selectedProduct) return;
@@ -63,7 +66,14 @@ const Pricing = ({ products, setProducts }) => {
       Object.entries(packs).map(([k, v]) => [k, Number(v || 0)]),
     ),
   });
+  const costPerUnit = Number(selectedProduct?.price || 0);
 
+  const totalCost = costPerUnit * previewQty;
+
+  const profit = preview.total - totalCost;
+
+  const profitPercent =
+    preview.total > 0 ? ((profit / preview.total) * 100).toFixed(2) : 0;
   return (
     <Box sx={{ maxWidth: 500, mx: "auto" }}>
       <Typography variant="h5" sx={{ mb: 2 }}>
@@ -128,7 +138,21 @@ const Pricing = ({ products, setProducts }) => {
       <Typography>
         <b>Breakdown:</b> {preview.breakdown || "-"}
       </Typography>
+      <Typography>
+        <b>Total Cost:</b> ₹{totalCost}
+      </Typography>
 
+      <Typography>
+        <b>Profit:</b>{" "}
+        <span style={{ color: profit >= 0 ? "green" : "red" }}>₹{profit}</span>
+      </Typography>
+
+      <Typography>
+        <b>Profit %:</b>{" "}
+        <span style={{ color: profit >= 0 ? "green" : "red" }}>
+          {profitPercent}%
+        </span>
+      </Typography>
       <Button variant="contained" fullWidth sx={{ mt: 3 }} onClick={handleSave}>
         Save Pricing
       </Button>
