@@ -7,11 +7,12 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import Billing from "./pages/Billing";
-import Reports from "./pages/Reports";
 import StockAlert from "./pages/StockAlert";
 import Settings from "./pages/Settings";
 import AddProduct from "./pages/AddProduct";
 import Pricing from "./pages/Pricing";
+import Reports from "./pages/Reports";
+import Invoice from "./pages/Invoice";
 
 function App() {
   const [products, setProducts] = useState(() => {
@@ -196,7 +197,9 @@ function App() {
           <Route path="/billing" element={<Billing products={products} />} />
           <Route path="/reports" element={<Reports products={products} />} />
           <Route path="/alerts" element={<StockAlert products={products} />} />
+          <Route path="/reports" element={<Reports />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/invoice" element={<Invoice />} />
         </Routes>
       </div>
     </Router>

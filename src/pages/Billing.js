@@ -1,12 +1,34 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Box, TextField, Button, MenuItem, Typography } from "@mui/material";
 import { getBestPriceWithBreakdown } from "../utils/pricingUtils";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const Billing = ({ products }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
   const [cart, setCart] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [taxPercent, setTaxPercent] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [searchText, setSearchText] = useState("");
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [billHistory, setBillHistory] = useState(() => {
+    const saved = localStorage.getItem("bills");
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [customerName, setCustomerName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [paymentMode, setPaymentMode] = useState("cash");
 
   const selectedProduct = products.find((p) => p.id === selectedId);
 
@@ -20,8 +42,28 @@ const Billing = ({ products }) => {
   const costPerUnit = Number(selectedProduct?.price || 0);
   const totalCost = costPerUnit * qty;
 
-  const profit = preview.total - totalCost;
+  const grandTotal = cart.reduce((sum, item) => sum + item.total, 0);
+  const totalProfit = cart.reduce((sum, item) => sum + item.profit, 0);
 
+  const profit = preview.total - totalCost;
+  const taxAmount = (grandTotal * taxPercent) / 100;
+  const discountAmount = (grandTotal * discountPercent) / 100;
+
+  const finalTotal = grandTotal + taxAmount - discountAmount;
+  useEffect(() => {
+    if (!searchText.trim()) {
+      setFilteredProducts([]);
+      return;
+    }
+
+    const results = products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(searchText.toLowerCase()),
+    );
+
+    setFilteredProducts(results);
+  }, [searchText, products]);
   const recalcItem = (product, qty) => {
     const preview = getBestPriceWithBreakdown(qty, product.pricing);
     const cost = Number(product.price || 0) * qty;
@@ -41,6 +83,8 @@ const Billing = ({ products }) => {
   };
 
   const updateQty = (id, newQty) => {
+    const safeQty = Math.max(1, newQty);
+
     setCart((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
@@ -50,13 +94,60 @@ const Billing = ({ products }) => {
 
         return {
           ...item,
-          ...recalcItem(product, Math.max(1, newQty)),
+          ...recalcItem(product, safeQty),
         };
       }),
     );
   };
 
-  const clearCart = () => setCart([]);
+  const handleClearCart = () => {
+    if (window.confirm("Clear all items?")) {
+      setCart([]);
+    }
+  };
+
+  const saveBill = () => {
+  if (cart.length === 0) return;
+
+  const newBill = {
+    id: Date.now(),
+    items: cart,
+    total: finalTotal,
+    profit: totalProfit,
+    date: new Date().toLocaleString(),
+
+    // ✅ NEW FIELDS
+    customer: {
+      name: customerName,
+      phone: phone,
+      email: email,
+    },
+
+    paymentMode: paymentMode,
+  };
+
+  setBillHistory((prev) => [newBill, ...prev]);
+
+  handleClearCart();
+
+  // reset customer fields (optional)
+  setCustomerName("");
+  setPhone("");
+  setEmail("");
+};
+
+  const handleSaveAndPrint = () => {
+    saveBill();
+
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  };
+
+  const handleSaveOnly = () => {
+    saveBill();
+    alert("Bill saved!");
+  };
 
   // ➕ Add to cart
   const addToCart = () => {
@@ -75,165 +166,274 @@ const Billing = ({ products }) => {
         breakdown: preview.breakdown,
       },
     ]);
+    setQty(1);
+    setSearchText("");
+    setSelectedId("");
   };
 
-  // 🧮 totals
-  const grandTotal = cart.reduce((sum, item) => sum + item.total, 0);
-  const totalProfit = cart.reduce((sum, item) => sum + item.profit, 0);
+  useEffect(() => {
+    localStorage.setItem("bills", JSON.stringify(billHistory));
+  }, [billHistory]);
 
   return (
-    <Box sx={{ maxWidth: 600, mx: "auto" }}>
-      <Typography variant="h5" sx={{ mb: 2 }}>
-        Billing
-      </Typography>
+    <Box sx={{ display: "flex", gap: 2, p: 2 }}>
+      {/* LEFT SIDE */}
+      <Box sx={{ flex: 2 }}>
+        {/* Product Search */}
+        <Box sx={{ p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
+          <Typography variant="h6">🔍 Product Search</Typography>
 
-      {/* Product Select */}
-      <TextField
-        select
-        label="Select Product"
-        fullWidth
-        margin="normal"
-        value={selectedId}
-        onChange={(e) => setSelectedId(e.target.value)}
-      >
-        {products.map((p) => (
-          <MenuItem key={p.id} value={p.id}>
-            {p.name}
-          </MenuItem>
-        ))}
-      </TextField>
+          {/* FLEX ROW */}
+          <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+            {/* LEFT SIDE (search + dropdown) */}
+            <Box sx={{ flex: 1, position: "relative" }}>
+              {/* Search Input */}
+              <TextField
+                fullWidth
+                placeholder="Search by product name, barcode..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+              />
 
-      {/* Quantity */}
-      <TextField
-        label="Quantity"
-        type="number"
-        fullWidth
-        margin="normal"
-        value={qty}
-        onChange={(e) => setQty(Math.max(1, Number(e.target.value || 1)))}
-      />
+              {/* 🔽 DROPDOWN BELOW INPUT */}
+              {filteredProducts.length > 0 && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    border: "1px solid #ddd",
+                    borderRadius: 1,
+                    mt: 0.5,
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    backgroundColor: "#fff",
+                    zIndex: 10,
+                  }}
+                >
+                  {filteredProducts.map((p) => (
+                    <Box
+                      key={p.id}
+                      sx={{
+                        p: 1,
+                        cursor: "pointer",
+                        "&:hover": { backgroundColor: "#f5f5f5" },
+                      }}
+                      onClick={() => {
+                        setSelectedId(p.id);
+                        setSearchText(p.name);
+                        setFilteredProducts([]);
+                      }}
+                    >
+                      {p.name}
+                    </Box>
+                  ))}
+                </Box>
+              )}
+            </Box>
 
-      {/* Preview */}
-      <Typography sx={{ mt: 2 }}>
-        <b>Total Price:</b> ₹{preview.total}
-      </Typography>
+            {/* RIGHT SIDE BUTTON */}
+            <Button variant="contained" onClick={addToCart}>
+              ➕ Add to Cart
+            </Button>
+          </Box>
+        </Box>
+        <Box sx={{ mt: 2, p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
+          <Typography variant="h6">🛍 Shopping Cart ({cart.length})</Typography>
+          <TableContainer
+            sx={{ mt: 2, border: "1px solid #ddd", borderRadius: 2 }}
+          >
+            <Table size="small">
+              {/* HEADER */}
+              <TableHead>
+                <TableRow>
+                  <TableCell>Product</TableCell>
+                  <TableCell align="center">Qty</TableCell>
+                  <TableCell align="center">Price</TableCell>
+                  <TableCell align="center">Total</TableCell>
+                  <TableCell align="center">Profit</TableCell>
+                  <TableCell align="center">Action</TableCell>
+                </TableRow>
+              </TableHead>
 
-      <Typography>
-        <b>Breakdown:</b> {preview.breakdown || "-"}
-      </Typography>
+              {/* BODY */}
+              <TableBody>
+                {cart.length === 0 && (
+                  <Typography sx={{ mt: 2, color: "#777" }}>
+                    No items in cart
+                  </Typography>
+                )}
+                {cart.map((item) => (
+                  <TableRow key={item.id}>
+                    {/* Product */}
+                    <TableCell>
+                      <b>{item.name}</b>
+                      <div style={{ fontSize: 11, color: "#777" }}>
+                        {item.breakdown}
+                      </div>
+                    </TableCell>
 
-      <Typography>
-        <b>Profit:</b>{" "}
-        <span style={{ color: profit >= 0 ? "green" : "red" }}>₹{profit}</span>
-      </Typography>
+                    {/* Qty (editable) */}
+                    <TableCell align="center">
+                      <TextField
+                        type="number"
+                        size="small"
+                        value={item.qty}
+                        onChange={(e) =>
+                          updateQty(item.id, Number(e.target.value || 1))
+                        }
+                        sx={{ width: 70 }}
+                      />
+                    </TableCell>
 
-      {/* Add */}
-      <Button variant="contained" fullWidth sx={{ mt: 2 }} onClick={addToCart}>
-        Add to Cart
-      </Button>
+                    {/* Unit Price */}
+                    <TableCell align="center">
+                      ₹{Math.round(item.total / item.qty)}
+                    </TableCell>
 
-      {/* Cart */}
-      <Typography variant="h6" sx={{ mt: 4 }}>
-        Cart
-      </Typography>
+                    {/* Total */}
+                    <TableCell align="center">₹{item.total}</TableCell>
 
-      {cart.map((item) => (
-        <Box key={item.id} sx={{ border: "1px solid #ddd", p: 2, mt: 1 }}>
-          <Typography>
-            <b>{item.name}</b>
+                    {/* Profit */}
+                    <TableCell align="center">
+                      <span
+                        style={{ color: item.profit >= 0 ? "green" : "red" }}
+                      >
+                        ₹{item.profit}
+                      </span>
+                    </TableCell>
+
+                    {/* Delete */}
+                    <TableCell align="center">
+                      <IconButton
+                        color="error"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>{" "}
+        </Box>
+      </Box>
+
+      {/* RIGHT SIDE */}
+      <Box sx={{ flex: 1 }}>
+        <Box sx={{ p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
+          <Typography>Subtotal: ₹{grandTotal}</Typography>
+
+          {/* Tax */}
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <Typography>Tax:</Typography>
+            <TextField
+              size="small"
+              value={taxPercent}
+              onChange={(e) => setTaxPercent(Number(e.target.value || 0))}
+              sx={{ mx: 1, width: 80 }}
+            />
+          </Box>
+
+          <Typography>Tax Amount: ₹{taxAmount}</Typography>
+
+          {/* Discount */}
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <Typography>Discount:</Typography>
+            <TextField
+              size="small"
+              value={discountPercent}
+              onChange={(e) => setDiscountPercent(Number(e.target.value || 0))}
+              sx={{ mx: 1, width: 80 }}
+            />
+          </Box>
+
+          <Typography color="red">Discount: ₹{discountAmount}</Typography>
+
+          <hr />
+
+          <Typography variant="h5" color="green">
+            Total: ₹{finalTotal}
           </Typography>
+        </Box>
+        <Box sx={{ mt: 2, p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
+          <Typography variant="h6">💳 Payment Details</Typography>
 
-          {/* Editable Qty */}
+          {/* Payment Method */}
+          <Box sx={{ mt: 1 }}>
+            <label>
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMode === "cash"}
+                onChange={() => setPaymentMode("cash")}
+              />{" "}
+              Cash
+            </label>
+
+            <label style={{ marginLeft: 20 }}>
+              <input
+                type="radio"
+                name="payment"
+                checked={paymentMode === "card"}
+                onChange={() => setPaymentMode("card")}
+              />{" "}
+              UPI
+            </label>
+          </Box>
+
+          {/* Customer Info */}
           <TextField
-            type="number"
-            size="small"
-            value={item.qty}
-            onChange={(e) => updateQty(item.id, Number(e.target.value || 1))}
-            sx={{ width: 80, mt: 1 }}
+            fullWidth
+            label="Customer Name"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+          <TextField
+            fullWidth
+            label="Phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+          <TextField
+            fullWidth
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            sx={{ mt: 1 }}
           />
 
-          <Typography>₹{item.total}</Typography>
-
-          <Typography sx={{ fontSize: 12 }}>{item.breakdown}</Typography>
-
-          {/* <Typography>
-            Profit:{" "}
-            <span style={{ color: item.profit >= 0 ? "green" : "red" }}>
-              ₹{item.profit}
-            </span>
-          </Typography> */}
-
-          {/* Remove */}
+          {/* Actions */}
           <Button
-            color="error"
-            size="small"
-            onClick={() => removeItem(item.id)}
+            fullWidth
+            variant="contained"
+            color="success"
+            sx={{ mt: 2 }}
+            onClick={handleSaveAndPrint}
           >
-            Remove
+            💾 Save & Print
           </Button>
+
+          <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+            <Button fullWidth variant="outlined" onClick={handleSaveOnly}>
+              Save Only
+            </Button>
+
+            <Button
+              fullWidth
+              color="error"
+              variant="contained"
+              onClick={handleClearCart}
+            >
+              Clear Cart
+            </Button>
+          </Box>
         </Box>
-      ))}
-
-      {/* Summary */}
-      <Box sx={{ mt: 3 }}>
-        <Typography>
-          <b>Grand Total:</b> ₹{grandTotal}
-        </Typography>
-
-        <Typography>
-          <b>Total Profit:</b>{" "}
-          <span style={{ color: totalProfit >= 0 ? "green" : "red" }}>
-            ₹{totalProfit}
-          </span>
-        </Typography>
       </Box>
-      <Button
-        variant="outlined"
-        color="error"
-        fullWidth
-        sx={{ mt: 2 }}
-        onClick={clearCart}
-      >
-        Clear Cart
-      </Button>
-      <Button
-        variant="contained"
-        fullWidth
-        sx={{ mt: 2 }}
-        onClick={() => setShowInvoice(true)}
-      >
-        Generate Invoice
-      </Button>
-      {showInvoice && (
-  <Box sx={{ mt: 4, p: 2, border: "2px solid black" }}>
-    <Typography variant="h6">Invoice</Typography>
-
-    {cart.map((item) => (
-      <Box key={item.id} sx={{ display: "flex", justifyContent: "space-between" }}>
-        <span>{item.name} × {item.qty}</span>
-        <span>₹{item.total}</span>
-      </Box>
-    ))}
-
-    <hr />
-
-    <Typography>
-      <b>Total:</b> ₹{grandTotal}
-    </Typography>
-
-    <Typography>
-      <b>Profit:</b> ₹{totalProfit}
-    </Typography>
-
-    <Button
-      variant="outlined"
-      sx={{ mt: 2 }}
-      onClick={() => window.print()}
-    >
-      Print
-    </Button>
-  </Box>
-)}
     </Box>
   );
 };

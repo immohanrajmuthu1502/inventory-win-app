@@ -132,14 +132,14 @@ const Pricing = ({ products, setProducts }) => {
       />
 
       <Typography sx={{ mt: 2 }}>
-        <b>Total Price:</b> ₹{preview.total}
+        <b>Selling Price:</b> ₹{preview.total}
       </Typography>
 
       <Typography>
         <b>Breakdown:</b> {preview.breakdown || "-"}
       </Typography>
       <Typography>
-        <b>Total Cost:</b> ₹{totalCost}
+        <b>Purchasing Cost:</b> ₹{totalCost}
       </Typography>
 
       <Typography>
