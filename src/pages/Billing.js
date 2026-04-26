@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, MenuItem, Typography } from "@mui/material";
+import React, { useState, useEffect, useMemo } from "react";
+import { Box, TextField, Button, Typography } from "@mui/material";
 import { getBestPriceWithBreakdown } from "../utils/pricingUtils";
 import {
   Table,
@@ -12,19 +12,14 @@ import {
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 
-const Billing = ({ products }) => {
+const Billing = ({ products,bills, setBills }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
-  // const [cart, setCart] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [taxPercent, setTaxPercent] = useState(0);
   const [discountPercent, setDiscountPercent] = useState(0);
   const [searchText, setSearchText] = useState("");
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [billHistory, setBillHistory] = useState(() => {
-    const saved = localStorage.getItem("bills");
-    return saved ? JSON.parse(saved) : [];
-  });
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -40,9 +35,10 @@ const Billing = ({ products }) => {
   // 🔥 calculate price
   const pricing = selectedProduct?.pricing;
 
-  const preview = pricing
-    ? getBestPriceWithBreakdown(qty, pricing)
-    : { total: 0, breakdown: "" };
+  const preview = useMemo(() => {
+    if (!pricing) return { total: 0, breakdown: "" };
+    return getBestPriceWithBreakdown(qty, pricing);
+  }, [qty, pricing]);
 
   const costPerUnit = Number(selectedProduct?.price || 0);
   const totalCost = costPerUnit * qty;
@@ -55,24 +51,28 @@ const Billing = ({ products }) => {
   const discountAmount = (grandTotal * discountPercent) / 100;
 
   const finalTotal = grandTotal + taxAmount - discountAmount;
-  useEffect(() => {
-    if (!searchText.trim()) {
-      setFilteredProducts([]);
-      return;
-    }
 
-    const results = products.filter(
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchText);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  const filteredProducts = useMemo(() => {
+    if (!debouncedSearch.trim()) return [];
+
+    return products.filter(
       (p) =>
-        p.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        p.barcode?.toLowerCase().includes(searchText.toLowerCase()),
+        p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        p.barcode?.toLowerCase().includes(debouncedSearch.toLowerCase()),
     );
+  }, [debouncedSearch, products]);
 
-    setFilteredProducts(results);
-  }, [searchText, products]);
-
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(cart));
-  }, [cart]);
+  // useEffect(() => {
+  //   localStorage.setItem("cart", JSON.stringify(cart));
+  // }, [cart]);
   const recalcItem = (product, qty) => {
     const preview = getBestPriceWithBreakdown(qty, product.pricing);
     const cost = Number(product.price || 0) * qty;
@@ -135,7 +135,7 @@ const Billing = ({ products }) => {
       paymentMode: paymentMode,
     };
 
-    setBillHistory((prev) => [newBill, ...prev]);
+    setBills((prev) => [newBill, ...prev]);
 
     handleClearCart();
 
@@ -180,10 +180,6 @@ const Billing = ({ products }) => {
     setSelectedId("");
   };
 
-  useEffect(() => {
-    localStorage.setItem("bills", JSON.stringify(billHistory));
-  }, [billHistory]);
-
   return (
     <Box sx={{ display: "flex", gap: 2, p: 2 }}>
       {/* LEFT SIDE */}
@@ -209,7 +205,7 @@ const Billing = ({ products }) => {
               />
 
               {/* 🔽 DROPDOWN BELOW INPUT */}
-              {filteredProducts.length > 0 && (
+              {debouncedSearch && filteredProducts.length > 0 && (
                 <Box
                   sx={{
                     position: "absolute",
@@ -236,7 +232,7 @@ const Billing = ({ products }) => {
                       onClick={() => {
                         setSelectedId(p.id);
                         setSearchText(p.name);
-                        setFilteredProducts([]);
+                        setDebouncedSearch(""); 
                       }}
                     >
                       {p.name}
@@ -276,62 +272,48 @@ const Billing = ({ products }) => {
 
               {/* BODY */}
               <TableBody>
-                {cart.length === 0 && (
-                  <Typography sx={{ mt: 2, color: "#777" }}>
-                    No items in cart
-                  </Typography>
-                )}
-                {cart.map((item) => (
-                  <TableRow key={item.id}>
-                    {/* Product */}
-                    <TableCell>
-                      <b>{item.name}</b>
-                      <div style={{ fontSize: 11, color: "#777" }}>
-                        {item.breakdown}
-                      </div>
-                    </TableCell>
-
-                    {/* Qty (editable) */}
-                    <TableCell align="center">
-                      <TextField
-                        type="number"
-                        size="small"
-                        value={item.qty}
-                        onChange={(e) =>
-                          updateQty(item.id, Number(e.target.value || 1))
-                        }
-                        sx={{ width: 70 }}
-                      />
-                    </TableCell>
-
-                    {/* Unit Price */}
-                    <TableCell align="center">
-                      ₹{Math.round(item.total / item.qty)}
-                    </TableCell>
-
-                    {/* Total */}
-                    <TableCell align="center">₹{item.total}</TableCell>
-
-                    {/* Profit */}
-                    <TableCell align="center">
-                      <span
-                        style={{ color: item.profit >= 0 ? "green" : "red" }}
-                      >
-                        ₹{item.profit}
-                      </span>
-                    </TableCell>
-
-                    {/* Delete */}
-                    <TableCell align="center">
-                      <IconButton
-                        color="error"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
+                {cart.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      No items in cart
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  cart.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <b>{item.name}</b>
+                        <div style={{ fontSize: 11, color: "#777" }}>
+                          {item.breakdown}
+                        </div>
+                      </TableCell>
+                      <TableCell align="center">
+                        <TextField
+                          type="number"
+                          size="small"
+                          value={item.qty}
+                          onChange={(e) =>
+                            updateQty(item.id, Number(e.target.value || 1))
+                          }
+                          sx={{ width: 70 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        ₹{Math.round(item.total / item.qty)}
+                      </TableCell>
+                      <TableCell align="center">₹{item.total}</TableCell>
+                      <TableCell align="center">₹{item.profit}</TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="error"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>{" "}

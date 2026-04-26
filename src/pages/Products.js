@@ -75,7 +75,7 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
 
     {
       field: "price",
-      headerName: "Price",
+      headerName: "Purchase Cost",
       width: 120,
       renderCell: (params) => {
         const price = Number(params.row?.price ?? 0);
@@ -110,7 +110,7 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
 
         return (
           <Box
-            title={hasPricing ? "Edit Price" : "Set Price"} 
+            title={hasPricing ? "Edit Price" : "Set Price"}
             onClick={() => {
               setSelectedProduct(p);
               setSinglePrice(p?.pricing?.single || "");
@@ -133,7 +133,6 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
                 transform: "scale(1.05)",
               },
             }}
-            
           >
             {hasPricing ? "Priced" : "Not Priced"}
           </Box>
@@ -216,6 +215,17 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
             "& .highlight-row": {
               backgroundColor: "#fff3cd !important",
             },
+            "& .MuiDataGrid-columnHeaders": {
+              backgroundColor: "#1976d2",
+              color: "#fff",
+              borderBottom: "1px solid #96bcdb",
+            },
+
+            "& .MuiDataGrid-columnHeaderTitle": {
+              fontWeight: 600,
+              fontSize: 13,
+              color: "#333",
+            },
           }}
           rows={rows}
           columns={columns}
@@ -256,7 +266,7 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
               autoFocus
               margin="normal"
               value={singlePrice}
-              placeholder={`Current: ₹${selectedProduct?.pricing?.single || 0}`} // TODO 
+              placeholder={`Current: ₹${selectedProduct?.pricing?.single || 0}`} // TODO
               onChange={(e) => setSinglePrice(e.target.value)}
             />
           </DialogContent>

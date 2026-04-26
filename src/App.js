@@ -19,6 +19,10 @@ function App() {
     const saved = localStorage.getItem("products");
     return saved ? JSON.parse(saved) : [];
   });
+  const [bills, setBills] = useState(() => {
+    const saved = localStorage.getItem("bills");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState("online");
@@ -29,26 +33,14 @@ function App() {
     localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
 
-  const deleteProduct = (id) => {
-    setProducts(products.filter((p) => p.id !== id));
-  };
+  // ✅ Save data whenever bills change
+  useEffect(() => {
+    localStorage.setItem("bills", JSON.stringify(bills));
+  }, [bills]);
 
-  const addOrUpdateProduct = (product) => {
-    if (editingProduct) {
-      // 🔁 Update existing product
-      setProducts(
-        products.map((p) =>
-          p.id === editingProduct.id ? { ...product, id: p.id } : p,
-        ),
-      );
+  
 
-      // ✅ RESET editing state AFTER update
-      setEditingProduct(null);
-    } else {
-      // ➕ Add new product
-      setProducts([...products, { ...product, id: Date.now() }]);
-    }
-  };
+  
 
   const totalProducts = products.length;
 
@@ -194,11 +186,18 @@ function App() {
             path="/pricing"
             element={<Pricing products={products} setProducts={setProducts} />}
           />
-          <Route path="/billing" element={<Billing products={products} />} />
+          <Route
+            path="/billing"
+            element={
+              <Billing products={products} bills={bills} setBills={setBills} />
+            }
+          />
           <Route path="/reports" element={<Reports products={products} />} />
           <Route path="/alerts" element={<StockAlert products={products} />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route
+            path="/settings"
+            element={<Settings products={products} bills={bills} />}
+          />
           <Route path="/invoice" element={<Invoice />} />
         </Routes>
       </div>
