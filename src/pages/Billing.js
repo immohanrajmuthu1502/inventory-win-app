@@ -15,7 +15,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 const Billing = ({ products }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
-  const [cart, setCart] = useState([]);
+  // const [cart, setCart] = useState([]);
   const [showInvoice, setShowInvoice] = useState(false);
   const [taxPercent, setTaxPercent] = useState(0);
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -29,8 +29,13 @@ const Billing = ({ products }) => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [paymentMode, setPaymentMode] = useState("cash");
+  const [cart, setCart] = useState(() => {
+    const saved = localStorage.getItem("cart");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const selectedProduct = products.find((p) => p.id === selectedId);
+  const isPriced = Number(selectedProduct?.pricing?.single || 0) > 0;
 
   // 🔥 calculate price
   const pricing = selectedProduct?.pricing;
@@ -64,6 +69,10 @@ const Billing = ({ products }) => {
 
     setFilteredProducts(results);
   }, [searchText, products]);
+
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
   const recalcItem = (product, qty) => {
     const preview = getBestPriceWithBreakdown(qty, product.pricing);
     const cost = Number(product.price || 0) * qty;
@@ -103,38 +112,38 @@ const Billing = ({ products }) => {
   const handleClearCart = () => {
     if (window.confirm("Clear all items?")) {
       setCart([]);
+      localStorage.removeItem("cart"); // 🔥 important
     }
   };
-
   const saveBill = () => {
-  if (cart.length === 0) return;
+    if (cart.length === 0) return;
 
-  const newBill = {
-    id: Date.now(),
-    items: cart,
-    total: finalTotal,
-    profit: totalProfit,
-    date: new Date().toLocaleString(),
+    const newBill = {
+      id: Date.now(),
+      items: cart,
+      total: finalTotal,
+      profit: totalProfit,
+      date: new Date().toLocaleString(),
 
-    // ✅ NEW FIELDS
-    customer: {
-      name: customerName,
-      phone: phone,
-      email: email,
-    },
+      // ✅ NEW FIELDS
+      customer: {
+        name: customerName,
+        phone: phone,
+        email: email,
+      },
 
-    paymentMode: paymentMode,
+      paymentMode: paymentMode,
+    };
+
+    setBillHistory((prev) => [newBill, ...prev]);
+
+    handleClearCart();
+
+    // reset customer fields (optional)
+    setCustomerName("");
+    setPhone("");
+    setEmail("");
   };
-
-  setBillHistory((prev) => [newBill, ...prev]);
-
-  handleClearCart();
-
-  // reset customer fields (optional)
-  setCustomerName("");
-  setPhone("");
-  setEmail("");
-};
 
   const handleSaveAndPrint = () => {
     saveBill();
@@ -182,7 +191,11 @@ const Billing = ({ products }) => {
         {/* Product Search */}
         <Box sx={{ p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
           <Typography variant="h6">🔍 Product Search</Typography>
-
+          {selectedProduct && !isPriced && (
+            <Typography color="error" sx={{ mt: 1 }}>
+              ⚠ Please set price before adding to cart
+            </Typography>
+          )}
           {/* FLEX ROW */}
           <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
             {/* LEFT SIDE (search + dropdown) */}
@@ -234,7 +247,11 @@ const Billing = ({ products }) => {
             </Box>
 
             {/* RIGHT SIDE BUTTON */}
-            <Button variant="contained" onClick={addToCart}>
+            <Button
+              variant="contained"
+              onClick={addToCart}
+              disabled={!selectedProduct || !isPriced}
+            >
               ➕ Add to Cart
             </Button>
           </Box>
@@ -250,7 +267,7 @@ const Billing = ({ products }) => {
                 <TableRow>
                   <TableCell>Product</TableCell>
                   <TableCell align="center">Qty</TableCell>
-                  <TableCell align="center">Price</TableCell>
+                  <TableCell align="center">Unit Price</TableCell>
                   <TableCell align="center">Total</TableCell>
                   <TableCell align="center">Profit</TableCell>
                   <TableCell align="center">Action</TableCell>
