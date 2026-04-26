@@ -192,7 +192,7 @@ function App() {
               <Billing products={products} bills={bills} setBills={setBills} />
             }
           />
-          <Route path="/reports" element={<Reports products={products} />} />
+          <Route path="/reports" element={<Reports bills={bills} />} />
           <Route path="/alerts" element={<StockAlert products={products} />} />
           <Route
             path="/settings"

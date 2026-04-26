@@ -17,17 +17,11 @@ import {
   Typography,
 } from "@mui/material";
 
-const Reports = () => {
-  const [bills, setBills] = useState([]);
+const Reports = ({bills}) => {
   const [filter, setFilter] = useState("today");
   const [appliedFilter, setAppliedFilter] = useState("today");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [openInvoice, setOpenInvoice] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("bills");
-    if (saved) setBills(JSON.parse(saved));
-  }, []);
 
   const getFilteredBills = (type) => {
     const now = new Date();
