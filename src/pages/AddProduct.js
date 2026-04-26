@@ -10,12 +10,18 @@ const AddProduct = ({
   setEditingProduct,
 }) => {
   const handleSave = (product) => {
-    const editing = !!editingProduct; // capture BEFORE reset
+    const editing = !!editingProduct;
 
     if (editing) {
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === editingProduct.id ? { ...product, id: p.id } : p,
+          p.id === editingProduct.id
+            ? {
+                ...p,
+                ...product,
+                id: p.id,
+              }
+            : p,
         ),
       );
       setEditingProduct(null);
@@ -23,7 +29,7 @@ const AddProduct = ({
       setProducts((prev) => [...prev, { ...product, id: Date.now() }]);
     }
 
-    setIsEditMode(editing); // ✅ store mode
+    setIsEditMode(editing);
     setOpenSnackbar(true);
   };
   const navigate = useNavigate();

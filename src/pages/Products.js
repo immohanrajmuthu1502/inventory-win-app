@@ -3,12 +3,22 @@ import { DataGrid } from "@mui/x-data-grid";
 import { Box, Button, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { Snackbar, Alert } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+} from "@mui/material";
 
 const Products = ({ products, setProducts, setEditingProduct }) => {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [updatedRowId, setUpdatedRowId] = useState(null);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [openPricing, setOpenPricing] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [singlePrice, setSinglePrice] = useState("");
   const categories = [
     "All",
     ...new Set(products.map((p) => p.category || "No Category")),
@@ -24,29 +34,31 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
 
     return searchMatch && categoryMatch;
   });
-  const deleteProduct = (id) => {
+  const handleDelete = (id) => {
     setProducts(products.filter((p) => p.id !== id));
   };
-  const handleCellEditCommit = (params) => {
-    const { id, field, value } = params;
 
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, [field]: Math.max(0, Number(value)) } : p,
-      ),
-    );
+  const handleSavePricing = () => {
+    if (!selectedProduct) return;
 
-    // ✅ highlight row
-    setUpdatedRowId(id);
+    const updatedProducts = products.map((p) => {
+      if (p.id !== selectedProduct.id) return p;
 
-    // ✅ show toast
-    setOpenSnackbar(true);
+      return {
+        ...p,
+        pricing: {
+          ...p.pricing,
+          single: Number(singlePrice),
+        },
+      };
+    });
 
-    // remove highlight after 1.5 sec
-    setTimeout(() => {
-      setUpdatedRowId(null);
-    }, 1500);
+    setProducts(updatedProducts);
+    localStorage.setItem("products", JSON.stringify(updatedProducts));
+
+    setOpenPricing(false);
   };
+
   const navigate = useNavigate();
 
   const columns = [
@@ -89,12 +101,51 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
       },
     },
     {
+      field: "pricingStatus",
+      headerName: "Pricing",
+      width: 150,
+      renderCell: (params) => {
+        const p = params.row;
+        const hasPricing = Number(p?.pricing?.single || 0) > 0;
+
+        return (
+          <Box
+            title={hasPricing ? "Edit Price" : "Set Price"} 
+            onClick={() => {
+              setSelectedProduct(p);
+              setSinglePrice(p?.pricing?.single || "");
+              setOpenPricing(true);
+            }}
+            sx={{
+              px: 1,
+              py: 0.5,
+              borderRadius: 1,
+              fontSize: 12,
+              fontWeight: 600,
+              textAlign: "center",
+              cursor: "pointer", // 🔥 important
+
+              backgroundColor: hasPricing ? "#e8f5e9" : "#ffebee",
+              color: hasPricing ? "#2e7d32" : "#c62828",
+
+              "&:hover": {
+                opacity: 0.8,
+                transform: "scale(1.05)",
+              },
+            }}
+            
+          >
+            {hasPricing ? "Priced" : "Not Priced"}
+          </Box>
+        );
+      },
+    },
+    {
       field: "actions",
       headerName: "Actions",
       width: 180,
       renderCell: (params) => {
-        const row = params?.row;
-        if (!row) return null;
+        const row = params.row;
 
         return (
           <>
@@ -111,7 +162,11 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
             <Button
               size="small"
               color="error"
-              onClick={() => deleteProduct(row.id)}
+              onClick={() => {
+                if (window.confirm(`Delete "${row.name}"?`)) {
+                  handleDelete(row.id);
+                }
+              }}
             >
               Delete
             </Button>
@@ -185,6 +240,35 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
             params.id === updatedRowId ? "highlight-row" : ""
           }
         />
+        <Dialog
+          open={openPricing}
+          onClose={() => setOpenPricing(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Set Price - {selectedProduct?.name}</DialogTitle>
+
+          <DialogContent>
+            <TextField
+              label="Single Price"
+              type="number"
+              fullWidth
+              autoFocus
+              margin="normal"
+              value={singlePrice}
+              placeholder={`Current: ₹${selectedProduct?.pricing?.single || 0}`} // TODO 
+              onChange={(e) => setSinglePrice(e.target.value)}
+            />
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setOpenPricing(false)}>Cancel</Button>
+
+            <Button variant="contained" onClick={handleSavePricing}>
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
         <Snackbar
           open={openSnackbar}
           autoHideDuration={2000}
@@ -200,10 +284,3 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
 };
 
 export default Products;
-<style>
-  {`
-  .highlight-row {
-    background-color: #fff3cd !important;
-  }
-`}
-</style>;

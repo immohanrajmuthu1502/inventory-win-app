@@ -1,7 +1,19 @@
 export const getBestPriceWithBreakdown = (qty, pricing) => {
   if (!pricing) return { total: 0, breakdown: "" };
 
-  const { single, packs } = pricing;
+  const single = Number(pricing?.single || 0);
+  const packs = pricing?.packs || {}; // 🔥 key fix
+
+  if (Object.keys(packs).length === 0) {
+    return {
+      total: qty * single,
+      breakdown: `${qty} × Single`,
+    };
+  }
+
+  if (single <= 0) {
+  return { total: 0, breakdown: "" };
+}
 
   let remaining = qty;
   let total = 0;
