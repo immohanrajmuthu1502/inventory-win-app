@@ -10,7 +10,8 @@ import {
   DialogActions,
   TextField,
 } from "@mui/material";
-
+import AddIcon from "@mui/icons-material/Add";
+import PriceCheckIcon from "@mui/icons-material/PriceCheck";
 const Products = ({ products, setProducts, setEditingProduct }) => {
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -208,6 +209,53 @@ const Products = ({ products, setProducts, setEditingProduct }) => {
             </option>
           ))}
         </select>
+      </Box>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center", // 🔥 IMPORTANT FIX
+          mb: 2,
+        }}
+      >
+        {/* Left side (optional title) */}
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Products
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {/* Add Product */}
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={() => navigate("/add-product")}
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              px: 1.5,
+            }}
+          >
+            Add Product
+          </Button>
+
+          {/* Pricing */}
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<PriceCheckIcon />}
+            onClick={() => navigate("/pricing")}
+            sx={{
+              textTransform: "none",
+              fontWeight: 500,
+              px: 1.5,
+              backgroundColor: "#2e7d32",
+              "&:hover": { backgroundColor: "#1b5e20" },
+            }}
+          >
+            Pricing
+          </Button>
+        </Box>
       </Box>
       <Box sx={{ height: 500, width: "100%" }}>
         <DataGrid

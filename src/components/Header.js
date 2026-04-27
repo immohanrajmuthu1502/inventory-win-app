@@ -1,45 +1,99 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import InventoryIcon from "@mui/icons-material/Inventory2";
+import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import SettingsIcon from "@mui/icons-material/Settings";
+import AddBoxIcon from "@mui/icons-material/AddBox";
+import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import { AppBar, Toolbar, Button, Box } from "@mui/material";
 
 const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const menuStyle = (path) => ({
-    marginRight: "20px",
-    textDecoration: "none",
-    fontWeight: "500",
-    color: location.pathname === path ? "#710be7" : "#555",
-  });
+  const menu = [
+    { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
+    { label: "Products", path: "/products", icon: <InventoryIcon /> },
+    // { label: "Add Product", path: "/add-product", icon: <AddBoxIcon /> },
+    // { label: "Pricing", path: "/pricing", icon: <PriceCheckIcon /> },
+    { label: "Billing", path: "/billing", icon: <PointOfSaleIcon /> },
+    { label: "Reports", path: "/reports", icon: <AssessmentIcon /> },
+    { label: "Settings", path: "/settings", icon: <SettingsIcon /> },
+  ];
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        padding: "10px 20px",
-        borderBottom: "1px solid #ddd",
-        background: "#fff",
-        position: "sticky",
-        top: 0,
-        zIndex: 1000
+    <AppBar
+      position="static"
+      sx={{
+        backgroundColor: "#fff",
+        color: "#333",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
       }}
     >
-      {/* Logo / App Name */}
-      <h2 style={{ marginRight: "40px" }}>Kutty Couture</h2>
+      <Toolbar>
+        {/* Logo / Title */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            mr: 2,
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/")}
+        >
+          <img
+            src="/appLogo.png"
+            alt="logo"
+            style={{
+              height: 64,
+              width: 64,
+              objectFit: "contain",
+            }}
+          />
 
-      {/* Menu */}
-      <Link to="/" style={menuStyle("/")}>Dashboard</Link>
-      <Link to="/products" style={menuStyle("/products")}>Products</Link>
-      <Link to="/billing" style={menuStyle("/billing")}>Billing</Link>
-      <Link to="/alerts" style={menuStyle("/alerts")}>Stock Alert</Link>
-      <Link to="/settings" style={menuStyle("/settings")}>Settings</Link>
-      <Link to="/pricing" style={menuStyle("/pricing")}>Pricing</Link>
-      <Link to="/reports" style={menuStyle("/reports")}>Reports</Link>
-      <div style={{ marginLeft: "auto" }}>
-            <button onClick={() => navigate("/add-product")} style={{ padding: "8px 16px", cursor: "pointer" }}>+ Add Product</button>
-       </div>
-    </div>
+          {/* Optional text next to logo */}
+          {/* <span style={{ marginLeft: 8, fontWeight: 600 }}>Kutty Couture</span> */}
+        </Box>
+
+        {/* Menu */}
+        <Box
+          sx={{
+            flexGrow: 1,
+            display: "flex",
+            gap: 1,
+            backgroundColor: "#fafafa",
+            "&:hover": {
+              transform: "translateY(-1px)",
+            },
+          }}
+        >
+          {menu.map((item) => {
+            const isActive = location.pathname === item.path;
+
+            return (
+              <Button
+                key={item.path}
+                startIcon={item.icon}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 500,
+                  color: isActive ? "#1976d2" : "#555",
+                  backgroundColor: isActive ? "#e3f2fd" : "transparent",
+                  "&:hover": {
+                    backgroundColor: "#f5f5f5",
+                  },
+                }}
+              >
+                {item.label}
+              </Button>
+            );
+          })}
+        </Box>
+      </Toolbar>
+    </AppBar>
   );
 };
 

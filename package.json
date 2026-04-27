@@ -1,5 +1,6 @@
 {
-  "name": "inventory-app",
+  "name": "kutty-couture-inventory",
+  "productName": "Kutty Couture",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
