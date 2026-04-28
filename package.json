@@ -13,7 +13,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
-    "electron-store": "^11.0.2",
+    "electron-store": "^8.2.0",
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
@@ -26,11 +26,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "electron": "node ./node_modules/electron/cli.js ./electron.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "electron": "electron .",
-    "dev": "npx concurrently -k \"npm:start\" \"npx wait-on http://localhost:3000 && npx electron .\""
+    "dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 --timeout 30000 && npm run electron\""
   },
   "eslintConfig": {
     "extends": [
@@ -56,5 +56,5 @@
     "electron-reload": "^2.0.0-alpha.1",
     "wait-on": "^9.0.5"
   },
-  "main": "public/electron.js"
+  "main": "electron.js"
 }
