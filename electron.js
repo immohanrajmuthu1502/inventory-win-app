@@ -1,11 +1,17 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+
+// 🔥 MUST come BEFORE Store
+app.setPath(
+  "userData",
+  path.join(app.getPath("appData"), "Kutty Couture Inventory")
+);
+
+// NOW import and create store
 const Store = require("electron-store");
-
 const store = new Store();
-let mainWindow;
 
-console.log("Electron app starting...");
+let mainWindow;
 
 process.on("uncaughtException", (error) => {
   console.error("UNCAUGHT EXCEPTION:", error);
@@ -17,14 +23,6 @@ app.on("ready", () => {
 
 console.log("Preload path:", path.join(__dirname, "preload.js"));
 
-app.setName("Kutty Couture Inventory");
-
-// 🔁 Auto reload only in dev
-// if (isDev) {
-//   require("electron-reload")(__dirname, {
-//     electron: require("electron"),
-//   });
-// }
 
 function createWindow() {
   const isDev = !app.isPackaged;
@@ -54,6 +52,8 @@ function createWindow() {
   });
 }
 
+console.log("UserData path:", app.getPath("userData"));
+
 app
   .whenReady()
   .then(() => {
@@ -70,6 +70,7 @@ ipcMain.handle("get-data", (event, key) => {
 });
 
 ipcMain.handle("set-data", (event, key, value) => {
+   console.log("Writing to store:", key);
   if (!key) return;
   store.set(key, value);
 });

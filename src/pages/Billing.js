@@ -70,9 +70,6 @@ const Billing = ({ products,bills, setBills }) => {
     );
   }, [debouncedSearch, products]);
 
-  // useEffect(() => {
-  //   localStorage.setItem("cart", JSON.stringify(cart));
-  // }, [cart]);
   const recalcItem = (product, qty) => {
     const preview = getBestPriceWithBreakdown(qty, product.pricing);
     const cost = Number(product.price || 0) * qty;

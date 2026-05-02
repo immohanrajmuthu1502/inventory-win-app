@@ -15,66 +15,66 @@ import Reports from "./pages/Reports";
 import Invoice from "./pages/Invoice";
 
 function App() {
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem("products");
-    return saved ? JSON.parse(saved) : [];
-  });
-  const [bills, setBills] = useState(() => {
-    const saved = localStorage.getItem("bills");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [products, setProducts] = useState([]);
+  const [bills, setBills] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  //   const [products, setProducts] = useState(() => {
+  //   const saved = localStorage.getItem("products");
+  //   return saved ? JSON.parse(saved) : [];
+  // });
+
+  // const [bills, setBills] = useState(() => {
+  //   const saved = localStorage.getItem("bills");
+  //   return saved ? JSON.parse(saved) : [];
+  // });
+
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [selectedChannel, setSelectedChannel] = useState("online");
   const [showPack, setShowPack] = useState(false);
 
   useEffect(() => {
-    const loadProducts = async () => {
-      const data = window.electronAPI
-        ? await window.electronAPI.getData("products")
-        : JSON.parse(localStorage.getItem("products") || "[]");
-      setProducts(data || []);
-    };
-    loadProducts();
-  }, []);
-
-  useEffect(() => {
-    const loadBills = async () => {
-      const data = window.electronAPI
-        ? await window.electronAPI.getData("bills")
-        : JSON.parse(localStorage.getItem("bills") || "[]");
-      setBills(data || []);
-    };
-    loadBills();
-  }, []);
-
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.setData("products", products);
+ const loadData = async () => {
+  try {
+    if (window.electronAPI?.getData) {
+      const data = await window.electronAPI.getData();
+      setProducts(data.products || []);
+      setBills(data.bills || []);
     } else {
-      localStorage.setItem("products", JSON.stringify(products));
+      setProducts(JSON.parse(localStorage.getItem("products") || "[]"));
+      setBills(JSON.parse(localStorage.getItem("bills") || "[]"));
     }
-  }, [products]);
 
-  useEffect(() => {
-    if (window.electronAPI) {
-      window.electronAPI.setData("bills", bills);
-    } else {
-      localStorage.setItem("bills", JSON.stringify(bills));
-    }
-  }, [bills]);
+    setIsLoaded(true);
 
-  const totalProducts = products.length;
+  } catch (err) {
+    console.error("Load error:", err);
+  }
+};
 
-  const totalStock = products.reduce(
-    (sum, p) => sum + Number(p.quantity || 0),
-    0,
-  );
+  loadData();
+}, []);
 
-  const totalProfit = products.reduce(
-    (sum, p) => sum + Number(p.profit || 0),
-    0,
-  );
+ useEffect(() => {
+  if (!isLoaded) return;
+
+  if (window.electronAPI?.setData) {
+    window.electronAPI.setData("products", products);
+  } else {
+    localStorage.setItem("products", JSON.stringify(products));
+  }
+}, [products, isLoaded]);
+
+useEffect(() => {
+  if (!isLoaded) return;
+
+  if (window.electronAPI?.setData) {
+    window.electronAPI.setData("bills", bills);
+  } else {
+    localStorage.setItem("bills", JSON.stringify(bills));
+  }
+}, [bills, isLoaded]);
 
   return (
     <Router>
