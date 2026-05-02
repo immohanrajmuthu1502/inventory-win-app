@@ -11,8 +11,10 @@ import {
   IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
+import { sendInvoiceToWhatsApp } from "../utils/whatsappInvoice";
 
-const Billing = ({ products,bills, setBills }) => {
+const Billing = ({ products,bills, setBills, settings }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
   const [showInvoice, setShowInvoice] = useState(false);
@@ -113,7 +115,7 @@ const Billing = ({ products,bills, setBills }) => {
     }
   };
   const saveBill = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0) return null;
 
     const newBill = {
       id: Date.now(),
@@ -145,10 +147,13 @@ const Billing = ({ products,bills, setBills }) => {
     setCustomerName("");
     setPhone("");
     setEmail("");
+
+    return newBill;
   };
 
   const handleSaveAndPrint = () => {
-    saveBill();
+    const bill = saveBill();
+    if (!bill) return;
 
     setTimeout(() => {
       window.print();
@@ -156,8 +161,16 @@ const Billing = ({ products,bills, setBills }) => {
   };
 
   const handleSaveOnly = () => {
-    saveBill();
+    const bill = saveBill();
+    if (!bill) return;
     alert("Bill saved!");
+  };
+
+  const handleSaveAndWhatsApp = () => {
+    const bill = saveBill();
+    if (!bill) return;
+
+    sendInvoiceToWhatsApp(bill, settings);
   };
 
   // ➕ Add to cart
@@ -378,8 +391,8 @@ const Billing = ({ products,bills, setBills }) => {
               <input
                 type="radio"
                 name="payment"
-                checked={paymentMode === "card"}
-                onChange={() => setPaymentMode("card")}
+                checked={paymentMode === "upi"}
+                onChange={() => setPaymentMode("upi")}
               />{" "}
               UPI
             </label>
@@ -422,6 +435,16 @@ const Billing = ({ products,bills, setBills }) => {
           <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
             <Button fullWidth variant="outlined" onClick={handleSaveOnly}>
               Save Only
+            </Button>
+
+            <Button
+              fullWidth
+              color="success"
+              variant="outlined"
+              startIcon={<WhatsAppIcon />}
+              onClick={handleSaveAndWhatsApp}
+            >
+              WhatsApp
             </Button>
 
             <Button

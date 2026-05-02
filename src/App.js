@@ -13,10 +13,12 @@ import AddProduct from "./pages/AddProduct";
 import Pricing from "./pages/Pricing";
 import Reports from "./pages/Reports";
 import Invoice from "./pages/Invoice";
+import { normalizeAppSettings } from "./utils/appSettings";
 
 function App() {
   const [products, setProducts] = useState([]);
   const [bills, setBills] = useState([]);
+  const [settings, setSettings] = useState(normalizeAppSettings());
   const [isLoaded, setIsLoaded] = useState(false);
 
   //   const [products, setProducts] = useState(() => {
@@ -41,9 +43,15 @@ function App() {
       const data = await window.electronAPI.getData();
       setProducts(data.products || []);
       setBills(data.bills || []);
+      setSettings(normalizeAppSettings(data.settings));
     } else {
       setProducts(JSON.parse(localStorage.getItem("products") || "[]"));
       setBills(JSON.parse(localStorage.getItem("bills") || "[]"));
+      setSettings(
+        normalizeAppSettings(
+          JSON.parse(localStorage.getItem("settings") || "{}"),
+        ),
+      );
     }
 
     setIsLoaded(true);
@@ -75,6 +83,16 @@ useEffect(() => {
     localStorage.setItem("bills", JSON.stringify(bills));
   }
 }, [bills, isLoaded]);
+
+useEffect(() => {
+  if (!isLoaded) return;
+
+  if (window.electronAPI?.setData) {
+    window.electronAPI.setData("settings", settings);
+  } else {
+    localStorage.setItem("settings", JSON.stringify(settings));
+  }
+}, [settings, isLoaded]);
 
   return (
     <Router>
@@ -112,16 +130,37 @@ useEffect(() => {
           <Route
             path="/billing"
             element={
-              <Billing products={products} bills={bills} setBills={setBills} />
+              <Billing
+                products={products}
+                bills={bills}
+                setBills={setBills}
+                settings={settings}
+              />
             }
           />
-          <Route path="/reports" element={<Reports bills={bills} />} />
+          <Route
+            path="/reports"
+            element={
+              <Reports
+                bills={bills}
+                setBills={setBills}
+                settings={settings}
+              />
+            }
+          />
           <Route path="/alerts" element={<StockAlert products={products} />} />
           <Route
             path="/settings"
-            element={<Settings products={products} bills={bills} />}
+            element={
+              <Settings
+                products={products}
+                bills={bills}
+                settings={settings}
+                setSettings={setSettings}
+              />
+            }
           />
-          <Route path="/invoice" element={<Invoice />} />
+          <Route path="/invoice" element={<Invoice settings={settings} />} />
         </Routes>
       </div>
     </Router>

@@ -1,11 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-
-const STORE = {
-  name: "Kutty Couture",
-  address: "Chennai",
-  phone: "9XXXXXXXXX",
-};
+import { normalizeAppSettings } from "./appSettings";
+import { formatPaymentMode } from "./paymentUtils";
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
 
@@ -18,33 +14,101 @@ const formatDate = (date) =>
     minute: "2-digit",
   });
 
-export const exportSalesToPDF = (bills) => {
+const getPdfBase64 = (doc) => doc.output("datauristring").split(",")[1];
+
+const getImageFormat = (dataUrl) => {
+  if (String(dataUrl).startsWith("data:image/jpeg")) return "JPEG";
+  if (String(dataUrl).startsWith("data:image/jpg")) return "JPEG";
+  if (String(dataUrl).startsWith("data:image/webp")) return "WEBP";
+  return "PNG";
+};
+
+const savePdf = (doc, fileName, settings) => {
+  if (window.electronAPI?.saveFile && settings?.exportPath) {
+    window.electronAPI.saveFile({
+      directory: settings.exportPath,
+      fileName,
+      base64Data: getPdfBase64(doc),
+    });
+    return;
+  }
+
+  doc.save(fileName);
+};
+
+const drawStoreHeader = (doc, settings, pageWidth, margin) => {
+  const shopLine = [
+    settings.shopAddress,
+    settings.shopPhone ? `Mobile: ${settings.shopPhone}` : "",
+    settings.shopEmail ? `Email: ${settings.shopEmail}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  doc.setDrawColor(35, 35, 35);
+  doc.setFillColor(35, 35, 35);
+  doc.rect(0, 0, pageWidth, 28, "F");
+
+  if (settings.billLogo) {
+    try {
+      doc.addImage(settings.billLogo, getImageFormat(settings.billLogo), margin, 5, 18, 18);
+    } catch (error) {
+      // Ignore invalid image data and continue with text invoice header.
+    }
+  }
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text(settings.shopName, settings.billLogo ? margin + 23 : margin, 13);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(shopLine, settings.billLogo ? margin + 23 : margin, 21, {
+    maxWidth: pageWidth - 85,
+  });
+};
+
+export const exportSalesToPDF = (bills, appSettings) => {
   if (!bills || bills.length === 0) return;
 
+  const settings = normalizeAppSettings(appSettings);
   const doc = new jsPDF();
+  const fileName = `sales_report_${new Date().toISOString().slice(0, 10)}.pdf`;
 
-  doc.text("Sales Report", 14, 10);
+  if (settings.billLogo) {
+    try {
+      doc.addImage(settings.billLogo, getImageFormat(settings.billLogo), 14, 8, 18, 18);
+    } catch (error) {
+      // Ignore invalid image data and keep report export usable.
+    }
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.text(settings.shopName, settings.billLogo ? 36 : 14, 13);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(settings.shopAddress || "", settings.billLogo ? 36 : 14, 20);
+  doc.setFontSize(16);
+  doc.text("Sales Report", 14, 36);
 
   autoTable(doc, {
-    startY: 20,
+    startY: 46,
     head: [["Date", "Customer", "Phone", "Payment", "Items", "Total"]],
     body: bills.map((b) => [
       formatDate(b.date),
       b.customer?.name || "Walk-in",
       b.customer?.phone || "-",
-      b.paymentMode,
+      formatPaymentMode(b.paymentMode),
       b.items.length,
       formatCurrency(b.total),
     ]),
   });
 
-  const fileName = `sales_report_${new Date().toISOString().slice(0, 10)}`;
-  doc.save(fileName + ".pdf");
+  savePdf(doc, fileName, settings);
 };
 
-export const downloadInvoice = (bill) => {
-  if (!bill) return;
-
+export const createInvoicePdf = (bill, appSettings) => {
+  const settings = normalizeAppSettings(appSettings);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
@@ -59,17 +123,7 @@ export const downloadInvoice = (bill) => {
   const total = Number(bill.total || 0);
   const adjustment = total - subtotal - taxAmount + discountAmount;
 
-  doc.setDrawColor(35, 35, 35);
-  doc.setFillColor(35, 35, 35);
-  doc.rect(0, 0, pageWidth, 28, "F");
-
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.text(STORE.name, margin, 13);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(`${STORE.address} | Mobile: ${STORE.phone}`, margin, 21);
+  drawStoreHeader(doc, settings, pageWidth, margin);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
@@ -92,7 +146,7 @@ export const downloadInvoice = (bill) => {
   }
 
   doc.text(`Date: ${formatDate(bill.date)}`, 128, 49);
-  doc.text(`Payment: ${bill.paymentMode || "-"}`, 128, 55);
+  doc.text(`Payment: ${formatPaymentMode(bill.paymentMode)}`, 128, 55);
 
   autoTable(doc, {
     startY: 72,
@@ -168,8 +222,17 @@ export const downloadInvoice = (bill) => {
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text("Thank you for shopping with Kutty Couture.", margin, 276);
+  doc.text(`Thank you for shopping with ${settings.shopName}.`, margin, 276);
   doc.text("This invoice is computer generated.", margin, 282);
 
-  doc.save(`invoice_${invoiceNo}.pdf`);
+  return doc;
+};
+
+export const getInvoicePdfFileName = (bill) =>
+  `invoice_${String(bill?.id || Date.now())}.pdf`;
+
+export const downloadInvoice = (bill, settings) => {
+  if (!bill) return;
+
+  savePdf(createInvoicePdf(bill, settings), getInvoicePdfFileName(bill), settings);
 };
