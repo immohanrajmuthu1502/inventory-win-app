@@ -12,6 +12,8 @@ import {
   Typography,
 } from "@mui/material";
 import { downloadInvoice } from "../utils/exportPDF";
+import { normalizeAppSettings } from "../utils/appSettings";
+import { formatPaymentMode } from "../utils/paymentUtils";
 
 const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
 
@@ -24,8 +26,9 @@ const formatDate = (date) =>
     minute: "2-digit",
   });
 
-const Invoice = () => {
+const Invoice = ({ settings }) => {
   const [bill, setBill] = useState(null);
+  const appSettings = normalizeAppSettings(settings);
 
   useEffect(() => {
     const data = localStorage.getItem("selectedInvoice");
@@ -65,10 +68,27 @@ const Invoice = () => {
         >
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Kutty Couture
+              {appSettings.shopName}
             </Typography>
-            <Typography variant="body2">Chennai | Mobile: 9XXXXXXXXX</Typography>
+            <Typography variant="body2">
+              {[
+                appSettings.shopAddress,
+                appSettings.shopPhone ? `Mobile: ${appSettings.shopPhone}` : "",
+                appSettings.shopEmail ? `Email: ${appSettings.shopEmail}` : "",
+              ]
+                .filter(Boolean)
+                .join(" | ")}
+            </Typography>
           </Box>
+          {appSettings.billLogo && (
+            <Box sx={{ mx: 2 }}>
+              <img
+                src={appSettings.billLogo}
+                alt="Bill logo"
+                style={{ maxHeight: 48, maxWidth: 120, objectFit: "contain" }}
+              />
+            </Box>
+          )}
           <Box sx={{ textAlign: "right" }}>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               INVOICE
@@ -88,7 +108,7 @@ const Invoice = () => {
           </Box>
           <Box sx={{ textAlign: "right" }}>
             <Typography>Date: {formatDate(bill.date)}</Typography>
-            <Typography>Payment: {bill.paymentMode || "-"}</Typography>
+            <Typography>Payment: {formatPaymentMode(bill.paymentMode)}</Typography>
           </Box>
         </Box>
 
@@ -161,7 +181,10 @@ const Invoice = () => {
         <Button variant="outlined" onClick={() => window.print()}>
           Print
         </Button>
-        <Button variant="contained" onClick={() => downloadInvoice(bill)}>
+        <Button
+          variant="contained"
+          onClick={() => downloadInvoice(bill, appSettings)}
+        >
           Download PDF
         </Button>
       </Box>

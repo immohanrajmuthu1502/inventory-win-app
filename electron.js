@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
+const fs = require("fs");
 
 // 🔥 MUST come BEFORE Store
 app.setPath(
@@ -73,6 +74,26 @@ ipcMain.handle("set-data", (event, key, value) => {
    console.log("Writing to store:", key);
   if (!key) return;
   store.set(key, value);
+});
+
+ipcMain.handle("select-export-folder", async () => {
+  const win = BrowserWindow.getFocusedWindow();
+  const result = await dialog.showOpenDialog(win, {
+    properties: ["openDirectory", "createDirectory"],
+  });
+
+  if (result.canceled) return "";
+  return result.filePaths[0] || "";
+});
+
+ipcMain.handle("save-file", async (event, { directory, fileName, base64Data }) => {
+  if (!directory || !fileName || !base64Data) return false;
+
+  const targetPath = path.join(directory, fileName);
+  await fs.promises.mkdir(directory, { recursive: true });
+  await fs.promises.writeFile(targetPath, Buffer.from(base64Data, "base64"));
+
+  return targetPath;
 });
 
 // ✅ Print

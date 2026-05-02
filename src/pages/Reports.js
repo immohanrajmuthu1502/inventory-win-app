@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { exportSalesToExcel } from "../utils/exportExcel";
 import { downloadInvoice, exportSalesToPDF } from "../utils/exportPDF";
-import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
+import { sendInvoiceToWhatsApp } from "../utils/whatsappInvoice";
+import { formatPaymentMode } from "../utils/paymentUtils";
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+} from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   Box,
@@ -16,12 +24,18 @@ import {
   MenuItem,
   Typography,
 } from "@mui/material";
+import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 
-const Reports = ({bills}) => {
+const Reports = ({ bills, setBills, settings }) => {
   const [filter, setFilter] = useState("today");
   const [appliedFilter, setAppliedFilter] = useState("today");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [openInvoice, setOpenInvoice] = useState(false);
+  const [isEditingCustomer, setIsEditingCustomer] = useState(false);
+  const [customerDraft, setCustomerDraft] = useState({
+    name: "",
+    phone: "",
+  });
 
   const getFilteredBills = (type) => {
     const now = new Date();
@@ -61,7 +75,38 @@ const Reports = ({bills}) => {
 
   const handleViewInvoice = (bill) => {
     setSelectedInvoice(bill);
+    setCustomerDraft({
+      name: bill.customer?.name || "",
+      phone: bill.customer?.phone || "",
+    });
+    setIsEditingCustomer(false);
     setOpenInvoice(true);
+  };
+
+  const handleCloseInvoice = () => {
+    setOpenInvoice(false);
+    setIsEditingCustomer(false);
+  };
+
+  const handleSaveCustomer = () => {
+    if (!selectedInvoice) return;
+
+    const updatedInvoice = {
+      ...selectedInvoice,
+      customer: {
+        ...selectedInvoice.customer,
+        name: customerDraft.name,
+        phone: customerDraft.phone,
+      },
+    };
+
+    setBills((prev) =>
+      prev.map((bill) =>
+        bill.id === selectedInvoice.id ? updatedInvoice : bill,
+      ),
+    );
+    setSelectedInvoice(updatedInvoice);
+    setIsEditingCustomer(false);
   };
 
   return (
@@ -190,7 +235,7 @@ const Reports = ({bills}) => {
 
                   <TableCell>{bill.customer?.phone || "-"}</TableCell>
 
-                  <TableCell>{bill.paymentMode}</TableCell>
+                  <TableCell>{formatPaymentMode(bill.paymentMode)}</TableCell>
 
                   <TableCell>{bill.items.length}</TableCell>
 
@@ -213,21 +258,21 @@ const Reports = ({bills}) => {
       >
         <Button
           variant="contained"
-          onClick={() => exportSalesToExcel(filteredBills)}
+          onClick={() => exportSalesToExcel(filteredBills, settings)}
         >
           EXPORT EXCEL
         </Button>
 
         <Button
           variant="outlined"
-          onClick={() => exportSalesToPDF(filteredBills)}
+          onClick={() => exportSalesToPDF(filteredBills, settings)}
         >
           EXPORT PDF
         </Button>
       </Box>
       <Dialog
         open={openInvoice}
-        onClose={() => setOpenInvoice(false)}
+        onClose={handleCloseInvoice}
         maxWidth="sm"
         fullWidth
       >
@@ -235,7 +280,7 @@ const Reports = ({bills}) => {
         <DialogTitle>
           Invoice
           <IconButton
-            onClick={() => setOpenInvoice(false)}
+            onClick={handleCloseInvoice}
             sx={{ position: "absolute", right: 8, top: 8 }}
           >
             <CloseIcon />
@@ -247,22 +292,55 @@ const Reports = ({bills}) => {
           {selectedInvoice && (
             <Box sx={{ p: 1 }}>
               {/* Business */}
-              <Typography variant="h6">Kutty Couture</Typography>
-              <Typography variant="body2">Chennai</Typography>
+              <Typography variant="h6">{settings?.shopName}</Typography>
+              <Typography variant="body2">{settings?.shopAddress}</Typography>
 
               <Typography sx={{ mt: 1 }}>
                 Date: {new Date(selectedInvoice.date).toLocaleString()}
               </Typography>
 
-              <Typography>
-                Customer: {selectedInvoice.customer?.name || "Walk-in"}
-              </Typography>
+              {isEditingCustomer ? (
+                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Customer Name"
+                    value={customerDraft.name}
+                    onChange={(e) =>
+                      setCustomerDraft((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                  />
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Phone / WhatsApp"
+                    value={customerDraft.phone}
+                    onChange={(e) =>
+                      setCustomerDraft((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
+                  />
+                </Box>
+              ) : (
+                <>
+                  <Typography>
+                    Customer: {selectedInvoice.customer?.name || "Walk-in"}
+                  </Typography>
+
+                  <Typography>
+                    Phone: {selectedInvoice.customer?.phone || "-"}
+                  </Typography>
+                </>
+              )}
 
               <Typography>
-                Phone: {selectedInvoice.customer?.phone || "-"}
+                Payment: {formatPaymentMode(selectedInvoice.paymentMode)}
               </Typography>
-
-              <Typography>Payment: {selectedInvoice.paymentMode}</Typography>
 
               <hr />
 
@@ -289,14 +367,36 @@ const Reports = ({bills}) => {
               <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
                 <Button
                   variant="contained"
-                  onClick={() => downloadInvoice(selectedInvoice)}
+                  onClick={() => downloadInvoice(selectedInvoice, settings)}
                 >
                   Download PDF
+                </Button>
+                <Button
+                  color="success"
+                  variant="contained"
+                  startIcon={<WhatsAppIcon />}
+                  onClick={() => sendInvoiceToWhatsApp(selectedInvoice, settings)}
+                >
+                  WhatsApp
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsEditingCustomer(true)}
+                >
+                  Edit Customer
                 </Button>
               </Box>
             </Box>
           )}
         </DialogContent>
+        {selectedInvoice && isEditingCustomer && (
+          <DialogActions>
+            <Button onClick={() => setIsEditingCustomer(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveCustomer}>
+              Save Customer
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
     </Box>
   );
