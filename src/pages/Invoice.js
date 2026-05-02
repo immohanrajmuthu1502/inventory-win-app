@@ -1,6 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import {
+  Box,
+  Button,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 import { downloadInvoice } from "../utils/exportPDF";
+
+const formatCurrency = (value) => `Rs. ${Number(value || 0).toFixed(2)}`;
+
+const formatDate = (date) =>
+  new Date(date).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 const Invoice = () => {
   const [bill, setBill] = useState(null);
@@ -12,44 +34,134 @@ const Invoice = () => {
 
   if (!bill) return <p>No invoice found</p>;
 
+  const subtotal =
+    typeof bill.subtotal === "number"
+      ? bill.subtotal
+      : bill.items?.reduce((sum, item) => sum + Number(item.total || 0), 0) ||
+        0;
+  const taxAmount = Number(bill.taxAmount || 0);
+  const discountAmount = Number(bill.discountAmount || 0);
+  const total = Number(bill.total || 0);
+  const adjustment = total - subtotal - taxAmount + discountAmount;
+
   return (
-    <Box sx={{ p: 3, maxWidth: 700, margin: "auto" }}>
-      <Typography variant="h6">Kutty Couture</Typography>
-      <Typography>Chennai</Typography>
-      <Typography>Mobile: 9XXXXXXXXX</Typography>
-      <hr />
-      <Typography variant="h5">Invoice</Typography>
-      <Typography>Invoice No: {bill.id}</Typography>
-      <Typography>Date: {new Date(bill.date).toLocaleString()}</Typography>
-
-      <Typography>Customer: {bill.customer?.name || "Walk-in"}</Typography>
-
-      <Typography>Phone: {bill.customer?.phone || "-"}</Typography>
-
-      <Typography>Payment: {bill.paymentMode}</Typography>
-
-      <hr />
-
-      {/* Items */}
-      {bill.items.map((item, i) => (
-        <Box key={i} sx={{ display: "flex", justifyContent: "space-between" }}>
-          <span>
-            {item.name} × {item.qty}
-          </span>
-          <span>₹{item.total}</span>
+    <Box sx={{ p: 3, maxWidth: 820, margin: "auto" }}>
+      <Box
+        sx={{
+          border: "1px solid #ddd",
+          borderRadius: 1,
+          overflow: "hidden",
+          backgroundColor: "#fff",
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            backgroundColor: "#232323",
+            color: "#fff",
+          }}
+        >
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              Kutty Couture
+            </Typography>
+            <Typography variant="body2">Chennai | Mobile: 9XXXXXXXXX</Typography>
+          </Box>
+          <Box sx={{ textAlign: "right" }}>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
+              INVOICE
+            </Typography>
+            <Typography variant="body2">#{bill.id}</Typography>
+          </Box>
         </Box>
-      ))}
 
-      <hr />
+        <Box sx={{ p: 2, display: "flex", justifyContent: "space-between" }}>
+          <Box>
+            <Typography sx={{ fontWeight: 700 }}>Bill To</Typography>
+            <Typography>{bill.customer?.name || "Walk-in Customer"}</Typography>
+            <Typography>Phone: {bill.customer?.phone || "-"}</Typography>
+            {bill.customer?.email && (
+              <Typography>Email: {bill.customer.email}</Typography>
+            )}
+          </Box>
+          <Box sx={{ textAlign: "right" }}>
+            <Typography>Date: {formatDate(bill.date)}</Typography>
+            <Typography>Payment: {bill.paymentMode || "-"}</Typography>
+          </Box>
+        </Box>
 
-      <Typography variant="h6">Total: ₹{bill.total}</Typography>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                <TableCell>#</TableCell>
+                <TableCell>Item</TableCell>
+                <TableCell align="center">Qty</TableCell>
+                <TableCell align="right">Unit Price</TableCell>
+                <TableCell align="right">Amount</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(bill.items || []).map((item, index) => (
+                <TableRow key={item.id || index}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell align="center">{item.qty}</TableCell>
+                  <TableCell align="right">
+                    {formatCurrency(Number(item.total || 0) / Number(item.qty || 1))}
+                  </TableCell>
+                  <TableCell align="right">{formatCurrency(item.total)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-      {/* Actions */}
-      <Box sx={{ mt: 2 }}>
-        <Button variant="contained" onClick={() => window.print()}>
+        <Box sx={{ p: 2, display: "flex", justifyContent: "flex-end" }}>
+          <Box sx={{ width: 280 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography>Subtotal</Typography>
+              <Typography>{formatCurrency(subtotal)}</Typography>
+            </Box>
+            {taxAmount > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography>
+                  Tax{bill.taxPercent ? ` (${bill.taxPercent}%)` : ""}
+                </Typography>
+                <Typography>{formatCurrency(taxAmount)}</Typography>
+              </Box>
+            )}
+            {discountAmount > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography>
+                  Discount
+                  {bill.discountPercent ? ` (${bill.discountPercent}%)` : ""}
+                </Typography>
+                <Typography>- {formatCurrency(discountAmount)}</Typography>
+              </Box>
+            )}
+            {Math.abs(adjustment) > 0.009 && (
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography>Adjustment</Typography>
+                <Typography>{formatCurrency(adjustment)}</Typography>
+              </Box>
+            )}
+            <Divider sx={{ my: 1 }} />
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <Typography variant="h6">Total</Typography>
+              <Typography variant="h6">{formatCurrency(total)}</Typography>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Button variant="outlined" onClick={() => window.print()}>
           Print
         </Button>
-        <Button variant="contained" onClick={() => downloadInvoice(bill)} sx={{ ml: 2 }}>
+        <Button variant="contained" onClick={() => downloadInvoice(bill)}>
           Download PDF
         </Button>
       </Box>

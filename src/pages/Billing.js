@@ -118,6 +118,11 @@ const Billing = ({ products,bills, setBills }) => {
     const newBill = {
       id: Date.now(),
       items: cart,
+      subtotal: grandTotal,
+      taxPercent,
+      taxAmount,
+      discountPercent,
+      discountAmount,
       total: finalTotal,
       profit: totalProfit,
       date: new Date().toLocaleString(),

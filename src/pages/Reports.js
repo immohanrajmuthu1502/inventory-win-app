@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { exportSalesToExcel } from "../utils/exportExcel";
-import { exportSalesToPDF } from "../utils/exportPDF";
+import { downloadInvoice, exportSalesToPDF } from "../utils/exportPDF";
 import { Dialog, DialogContent, DialogTitle, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -289,7 +289,7 @@ const Reports = ({bills}) => {
               <Box sx={{ mt: 2, display: "flex", gap: 2 }}>
                 <Button
                   variant="contained"
-                  onClick={() => exportSalesToPDF([selectedInvoice])}
+                  onClick={() => downloadInvoice(selectedInvoice)}
                 >
                   Download PDF
                 </Button>
