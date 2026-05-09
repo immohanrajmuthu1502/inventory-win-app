@@ -116,7 +116,7 @@ useEffect(() => {
       <div style={{ padding: "20px" }}>
         <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          <Route path="/" element={<Dashboard products={products} />} />
+          <Route path="/" element={<Dashboard products={products} bills={bills} />} />
           <Route
             path="/add-product"
             element={
@@ -148,6 +148,7 @@ useEffect(() => {
             element={
               <Billing
                 products={products}
+                setProducts={setProducts}
                 bills={bills}
                 setBills={setBills}
                 settings={settings}

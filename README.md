@@ -1,70 +1,134 @@
-# Getting Started with Create React App
+# Kutty Couture Inventory
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Windows desktop inventory and billing app built with React and Electron.
 
-## Available Scripts
+## Prerequisites
 
-In the project directory, you can run:
+- Node.js and npm installed
+- Windows machine for creating/testing the Windows EXE
+- Dependencies installed with:
 
-### `npm start`
+```powershell
+npm install
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+For clean/reproducible installs, use:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```powershell
+npm ci
+```
 
-### `npm test`
+If `npm ci` fails with an `EPERM unlink ... electron ... dll` error, close any running app windows from `dist\win-unpacked` or Electron development windows, then run it again.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Development
 
-### `npm run build`
+Run React in browser mode:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```powershell
+npm start
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Run React and Electron together:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```powershell
+npm run dev
+```
 
-### `npm run eject`
+## Build React Production Files
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```powershell
+npm run build
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+This creates the React production output in `build\`.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Important packaging notes:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- `homepage` is set to `"./"` so packaged Electron can load React assets through `file://`.
+- The app uses `HashRouter`, which works correctly inside the packaged Windows app.
 
-## Learn More
+## Build Windows EXE
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Before building, close any running `Kutty Couture.exe` from `dist\win-unpacked`.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Create the unpacked Windows app:
 
-### Code Splitting
+```powershell
+npx electron-builder --dir
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Output:
 
-### Analyzing the Bundle Size
+```text
+dist\win-unpacked\Kutty Couture.exe
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+This is the best build to test locally while developing.
 
-### Making a Progressive Web App
+## Build Windows Installer
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Create the NSIS installer:
 
-### Advanced Configuration
+```powershell
+npm run dist:win
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Expected output:
 
-### Deployment
+```text
+dist\Kutty Couture Setup <version>.exe
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+If the installer build fails because Windows cannot create symbolic links while extracting `winCodeSign`, enable Developer Mode in Windows or run the terminal as Administrator. The project currently disables executable signing/editing for local unsigned builds with:
 
-### `npm run build` fails to minify
+```json
+"signAndEditExecutable": false
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Common Build Issues
+
+### EXE says it cannot find `electron.js`
+
+The packaged app must point to the root Electron entry file. This repo sets:
+
+```json
+"extraMetadata": {
+  "main": "electron.js"
+}
+```
+
+### EXE opens but React components do not render
+
+Make sure `homepage` remains:
+
+```json
+"homepage": "./"
+```
+
+Then rebuild:
+
+```powershell
+npm run build
+npx electron-builder --dir
+```
+
+### Build folder or dist folder has stale files
+
+Close the EXE first, then clean/rebuild:
+
+```powershell
+npm run clean
+npm run build
+npx electron-builder --dir
+```
+
+## Useful Scripts
+
+```text
+npm start       React dev server
+npm run dev     React dev server + Electron
+npm run build   React production build
+npm run clean   Remove dist folder
+npm run dist:win Build Windows NSIS installer
+npm run pack:win Build portable Windows package
+```

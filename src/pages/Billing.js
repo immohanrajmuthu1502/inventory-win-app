@@ -14,7 +14,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";
 import { sendInvoiceToWhatsApp } from "../utils/whatsappInvoice";
 
-const Billing = ({ products,bills, setBills, settings }) => {
+const Billing = ({ products, setProducts, bills, setBills, settings }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
   const [showInvoice, setShowInvoice] = useState(false);
@@ -33,6 +33,7 @@ const Billing = ({ products,bills, setBills, settings }) => {
 
   const selectedProduct = products.find((p) => p.id === selectedId);
   const isPriced = Number(selectedProduct?.pricing?.single || 0) > 0;
+  const selectedStock = Number(selectedProduct?.quantity || 0);
 
   // 🔥 calculate price
   const pricing = selectedProduct?.pricing;
@@ -90,15 +91,73 @@ const Billing = ({ products,bills, setBills, settings }) => {
     setCart((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const updateQty = (id, newQty) => {
-    const safeQty = Math.max(1, newQty);
+  const getCartQtyForProduct = (productId, excludeCartItemId) =>
+    cart.reduce((sum, item) => {
+      if (item.productId !== productId || item.id === excludeCartItemId) {
+        return sum;
+      }
+      return sum + Number(item.qty || 0);
+    }, 0);
 
+  const getSoldQtyByProduct = () =>
+    cart.reduce((acc, item) => {
+      acc[item.productId] = (acc[item.productId] || 0) + Number(item.qty || 0);
+      return acc;
+    }, {});
+
+  const validateCartStock = () => {
+    const soldQtyByProduct = getSoldQtyByProduct();
+
+    for (const [productId, soldQty] of Object.entries(soldQtyByProduct)) {
+      const product = products.find((p) => String(p.id) === String(productId));
+      const availableQty = Number(product?.quantity || 0);
+
+      if (!product || soldQty > availableQty) {
+        alert(
+          `${product?.name || "Product"} has only ${availableQty} in stock. Please update the cart quantity.`,
+        );
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const deductStockForCart = () => {
+    const soldQtyByProduct = getSoldQtyByProduct();
+
+    setProducts((prev) =>
+      prev.map((product) => {
+        const soldQty = Number(soldQtyByProduct[product.id] || 0);
+        if (soldQty === 0) return product;
+
+        return {
+          ...product,
+          quantity: Math.max(0, Number(product.quantity || 0) - soldQty),
+        };
+      }),
+    );
+  };
+
+  const updateQty = (id, newQty) => {
     setCart((prev) =>
       prev.map((item) => {
         if (item.id !== id) return item;
 
         const product = products.find((p) => p.id === item.productId);
         if (!product) return item;
+        const availableQty = Number(product.quantity || 0);
+        const otherCartQty = getCartQtyForProduct(item.productId, item.id);
+        const maxQty = Math.max(0, availableQty - otherCartQty);
+        if (maxQty === 0) {
+          alert(`${product.name} is out of stock.`);
+          return item;
+        }
+        const safeQty = Math.min(Math.max(1, newQty), maxQty);
+
+        if (newQty > maxQty) {
+          alert(`${product.name} has only ${maxQty} available.`);
+        }
 
         return {
           ...item,
@@ -108,14 +167,15 @@ const Billing = ({ products,bills, setBills, settings }) => {
     );
   };
 
-  const handleClearCart = () => {
-    if (window.confirm("Clear all items?")) {
+  const handleClearCart = (shouldConfirm = true) => {
+    if (!shouldConfirm || window.confirm("Clear all items?")) {
       setCart([]);
       localStorage.removeItem("cart"); // 🔥 important
     }
   };
   const saveBill = () => {
     if (cart.length === 0) return null;
+    if (!validateCartStock()) return null;
 
     const newBill = {
       id: Date.now(),
@@ -139,9 +199,10 @@ const Billing = ({ products,bills, setBills, settings }) => {
       paymentMode: paymentMode,
     };
 
+    deductStockForCart();
     setBills((prev) => [newBill, ...prev]);
 
-    handleClearCart();
+    handleClearCart(false);
 
     // reset customer fields (optional)
     setCustomerName("");
@@ -176,6 +237,18 @@ const Billing = ({ products,bills, setBills, settings }) => {
   // ➕ Add to cart
   const addToCart = () => {
     if (!selectedProduct || qty <= 0) return;
+    const existingCartQty = getCartQtyForProduct(selectedProduct.id);
+    const availableQty = selectedStock - existingCartQty;
+
+    if (availableQty <= 0) {
+      alert(`${selectedProduct.name} is out of stock.`);
+      return;
+    }
+
+    if (qty > availableQty) {
+      alert(`${selectedProduct.name} has only ${availableQty} available.`);
+      return;
+    }
 
     setCart((prev) => [
       ...prev,
@@ -261,11 +334,19 @@ const Billing = ({ products,bills, setBills, settings }) => {
             <Button
               variant="contained"
               onClick={addToCart}
-              disabled={!selectedProduct || !isPriced}
+              disabled={!selectedProduct || !isPriced || selectedStock <= 0}
             >
               ➕ Add to Cart
             </Button>
           </Box>
+          {selectedProduct && (
+            <Typography
+              color={selectedStock <= 0 ? "error" : "text.secondary"}
+              sx={{ mt: 1, fontSize: 13 }}
+            >
+              Available stock: {selectedStock}
+            </Typography>
+          )}
         </Box>
         <Box sx={{ mt: 2, p: 2, border: "1px solid #ddd", borderRadius: 2 }}>
           <Typography variant="h6">🛍 Shopping Cart ({cart.length})</Typography>
