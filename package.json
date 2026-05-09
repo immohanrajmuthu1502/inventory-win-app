@@ -3,6 +3,7 @@
   "productName": "Kutty Couture",
   "version": "0.1.0",
   "private": true,
+  "homepage": "./",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
@@ -58,6 +59,9 @@
     "appId": "com.kuttycouture.inventory",
     "productName": "Kutty Couture",
     "asar": false,
+    "extraMetadata": {
+      "main": "electron.js"
+    },
     "files": [
       "build/**/*",
       "node_modules/**/*",
@@ -72,7 +76,8 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/appIcon.ico"
+      "icon": "appIcon.ico",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,

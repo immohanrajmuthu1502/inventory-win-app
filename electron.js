@@ -27,10 +27,14 @@ console.log("Preload path:", path.join(__dirname, "preload.js"));
 
 function createWindow() {
   const isDev = !app.isPackaged;
+  const iconPath = isDev
+    ? path.join(__dirname, "public", "appIcon.ico")
+    : path.join(__dirname, "build", "appIcon.ico");
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(__dirname, "appIcon.png"),
+    icon: iconPath,
     title: "Kutty Couture Inventory",
     show: false,
     webPreferences: {

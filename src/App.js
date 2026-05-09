@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
 import Header from "./components/Header";
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { normalizeAppSettings } from "./utils/appSettings";
 
 // Lazy load all page components for better startup performance
@@ -111,7 +111,7 @@ useEffect(() => {
 
   return (
     <Router>
-      <Header />
+      <Header settings={settings} />
 
       <div style={{ padding: "20px" }}>
         <Suspense fallback={<LoadingFallback />}>

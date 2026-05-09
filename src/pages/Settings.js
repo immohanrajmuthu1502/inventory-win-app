@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Typography, Button, TextField } from "@mui/material";
 import { normalizeAppSettings } from "../utils/appSettings";
 
 const Settings = ({ products, bills, settings, setSettings }) => {
   const [draft, setDraft] = useState(normalizeAppSettings(settings));
+
+  useEffect(() => {
+    setDraft(normalizeAppSettings(settings));
+  }, [settings]);
 
   const updateDraft = (key, value) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -150,7 +154,7 @@ const Settings = ({ products, bills, settings, setSettings }) => {
 
           <Box sx={{ mt: 2 }}>
             <Button variant="outlined" component="label">
-              Upload Bill Logo
+              Upload App Logo
               <input
                 type="file"
                 hidden

@@ -11,10 +11,13 @@ import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
+import { normalizeAppSettings } from "../utils/appSettings";
 
-const Header = () => {
+const Header = ({ settings }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const appSettings = normalizeAppSettings(settings);
+  const logoSrc = appSettings.billLogo || `${process.env.PUBLIC_URL}/appLogo.png`;
 
   const menu = [
     { label: "Dashboard", path: "/", icon: <DashboardIcon /> },
@@ -47,8 +50,8 @@ const Header = () => {
           onClick={() => navigate("/")}
         >
           <img
-            src="/appLogo.png"
-            alt="logo"
+            src={logoSrc}
+            alt={appSettings.shopName || "App logo"}
             style={{
               height: 64,
               width: 64,
