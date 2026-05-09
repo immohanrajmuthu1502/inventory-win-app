@@ -32,6 +32,7 @@ function createWindow() {
     height: 800,
     icon: path.join(__dirname, "appIcon.png"),
     title: "Kutty Couture Inventory",
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -43,10 +44,14 @@ function createWindow() {
     mainWindow
       .loadURL("http://localhost:3000")
       .catch((err) => console.error("LOAD ERROR:", err));
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, "build/index.html"));
   }
-  mainWindow.webContents.openDevTools();
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+  });
 
   mainWindow.on("closed", () => {
     mainWindow = null;

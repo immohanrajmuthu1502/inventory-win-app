@@ -1,19 +1,34 @@
-import React, { useState, useEffect } from "react";
-import ProductForm from "./components/ProductForm";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Link } from "react-router-dom";
 import Header from "./components/Header";
 
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Dashboard from "./pages/Dashboard";
-import Products from "./pages/Products";
-import Billing from "./pages/Billing";
-import StockAlert from "./pages/StockAlert";
-import Settings from "./pages/Settings";
-import AddProduct from "./pages/AddProduct";
-import Pricing from "./pages/Pricing";
-import Reports from "./pages/Reports";
-import Invoice from "./pages/Invoice";
 import { normalizeAppSettings } from "./utils/appSettings";
+
+// Lazy load all page components for better startup performance
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Products = lazy(() => import("./pages/Products"));
+const Billing = lazy(() => import("./pages/Billing"));
+const StockAlert = lazy(() => import("./pages/StockAlert"));
+const Settings = lazy(() => import("./pages/Settings"));
+const AddProduct = lazy(() => import("./pages/AddProduct"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Invoice = lazy(() => import("./pages/Invoice"));
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div style={{
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    height: "100vh",
+    fontSize: "16px",
+    color: "#666"
+  }}>
+    Loading...
+  </div>
+);
 
 function App() {
   const [products, setProducts] = useState([]);
@@ -99,6 +114,7 @@ useEffect(() => {
       <Header />
 
       <div style={{ padding: "20px" }}>
+        <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Dashboard products={products} />} />
           <Route
@@ -162,6 +178,7 @@ useEffect(() => {
           />
           <Route path="/invoice" element={<Invoice settings={settings} />} />
         </Routes>
+        </Suspense>
       </div>
     </Router>
   );

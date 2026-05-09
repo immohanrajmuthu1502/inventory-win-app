@@ -25,12 +25,15 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
+    "clean": "rimraf dist",
     "start": "react-scripts start",
     "electron": "node ./node_modules/electron/cli.js ./electron.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 --timeout 30000 && npm run electron\""
+    "dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 --timeout 30000 && npm run electron\"",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "pack:win": "npm run build && electron-builder --win portable"
   },
   "eslintConfig": {
     "extends": [
@@ -53,8 +56,35 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "electron": "^41.3.0",
+    "electron-builder": "^26.8.1",
     "electron-reload": "^2.0.0-alpha.1",
     "wait-on": "^9.0.5"
+  },
+  "build": {
+    "appId": "com.kuttycouture.inventory",
+    "productName": "Kutty Couture",
+    "asar": false,
+    "files": [
+      "build/**/*",
+      "node_modules/**/*",
+      "electron.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/appIcon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "main": "electron.js"
 }

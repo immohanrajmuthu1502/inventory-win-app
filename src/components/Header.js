@@ -7,7 +7,10 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import PriceCheckIcon from "@mui/icons-material/PriceCheck";
-import { AppBar, Toolbar, Button, Box } from "@mui/material";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
 
 const Header = () => {
   const location = useLocation();
