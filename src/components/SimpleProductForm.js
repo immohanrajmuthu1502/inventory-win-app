@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { TextField, Button, MenuItem, Box } from "@mui/material";
 
-const SimpleProductForm = ({ onSave, editingProduct }) => {
+const SimpleProductForm = ({ onSave, editingProduct, categories = ["No Category", "Jabla", "Frock", "Set"] }) => {
   const [errors, setErrors] = useState({});
   const [product, setProduct] = useState({
     name: "",
@@ -19,11 +19,19 @@ const SimpleProductForm = ({ onSave, editingProduct }) => {
         barcode: editingProduct.barcode || "",
         quantity: editingProduct.quantity || 0,
         price: editingProduct.price || 0,
-        category: editingProduct.category || "No Category",
+        category: editingProduct.category || categories[0] || "No Category",
         minStock: editingProduct.minStock || 0,
       });
+    } else {
+      // Ensure category is valid when categories change
+      setProduct((prev) => {
+        const validCategory = categories.includes(prev.category)
+          ? prev.category
+          : categories[0] || "No Category";
+        return { ...prev, category: validCategory };
+      });
     }
-  }, [editingProduct]);
+  }, [editingProduct, categories]);
 
   const handleChange = (e) => {
     setProduct({ ...product, [e.target.name]: e.target.value });
@@ -131,10 +139,11 @@ const SimpleProductForm = ({ onSave, editingProduct }) => {
         fullWidth
         margin="normal"
       >
-        <MenuItem value="No Category">No Category</MenuItem>
-        <MenuItem value="Jabla">Jabla</MenuItem>
-        <MenuItem value="Frock">Frock</MenuItem>
-        <MenuItem value="Set">Set</MenuItem>
+        {categories.map((cat) => (
+          <MenuItem key={cat} value={cat}>
+            {cat}
+          </MenuItem>
+        ))}
       </TextField>
 
       <TextField

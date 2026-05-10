@@ -377,7 +377,7 @@ const Dashboard = ({ products = [], bills = [] }) => {
             <Typography sx={{ fontWeight: 600 }}>{pricingCoverage}%</Typography>
           </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            Stock purchase value
+            Total stock value
           </Typography>
           <Typography sx={{ fontWeight: 700 }}>
             {formatCurrency(insights.inventoryValue)}

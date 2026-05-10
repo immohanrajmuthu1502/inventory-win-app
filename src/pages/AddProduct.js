@@ -8,6 +8,7 @@ const AddProduct = ({
   setProducts,
   editingProduct,
   setEditingProduct,
+  settings,
 }) => {
   const handleSave = (product) => {
     const editing = !!editingProduct;
@@ -52,7 +53,11 @@ const AddProduct = ({
 
       <h2>{editingProduct ? "Edit Product" : "Add New Product"}</h2>
 
-      <SimpleProductForm onSave={handleSave} editingProduct={editingProduct} />
+      <SimpleProductForm 
+        onSave={handleSave} 
+        editingProduct={editingProduct}
+        categories={settings?.categories || ["No Category", "Jabla", "Frock", "Set"]}
+      />
       <Snackbar
         open={openSnackbar}
         autoHideDuration={3000}

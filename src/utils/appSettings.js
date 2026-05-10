@@ -5,6 +5,7 @@ export const DEFAULT_APP_SETTINGS = {
   shopPhone: "9XXXXXXXXX",
   billLogo: "",
   exportPath: "",
+  categories: ["No Category", "Jabla", "Frock", "Set"],
 };
 
 export const normalizeAppSettings = (settings = {}) => ({

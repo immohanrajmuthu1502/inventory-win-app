@@ -36,6 +36,7 @@ const Reports = ({ bills, setBills, settings }) => {
     name: "",
     phone: "",
   });
+  const [invoiceSearch, setInvoiceSearch] = useState("");
 
   const getFilteredBills = (type) => {
     const now = new Date();
@@ -63,7 +64,15 @@ const Reports = ({ bills, setBills, settings }) => {
     });
   };
 
-  const filteredBills = getFilteredBills(appliedFilter);
+  let filteredBills = getFilteredBills(appliedFilter);
+  
+  // Filter by invoice number if search is provided
+  if (invoiceSearch.trim()) {
+    filteredBills = filteredBills.filter((bill) =>
+      String(bill.id).includes(invoiceSearch.trim())
+    );
+  }
+  
   const totalSales = filteredBills.length;
 
   const totalRevenue = filteredBills.reduce((sum, b) => sum + b.total, 0);
@@ -129,6 +138,14 @@ const Reports = ({ bills, setBills, settings }) => {
         <Button variant="contained" onClick={() => setAppliedFilter(filter)}>
           APPLY FILTER
         </Button>
+
+        <TextField
+          size="small"
+          placeholder="Search by invoice number..."
+          value={invoiceSearch}
+          onChange={(e) => setInvoiceSearch(e.target.value)}
+          sx={{ flex: 1, maxWidth: 300 }}
+        />
       </Box>
       <Box
         sx={{
@@ -209,6 +226,7 @@ const Reports = ({ bills, setBills, settings }) => {
                   backgroundColor: "#f5f5f5",
                 }}
               >
+                <TableCell sx={{ fontWeight: "bold" }}>Invoice No.</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Customer</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Phone</TableCell>
@@ -229,6 +247,8 @@ const Reports = ({ bills, setBills, settings }) => {
                     "&:hover": { backgroundColor: "#f1f7ff" },
                   }}
                 >
+                  <TableCell sx={{ fontWeight: 600 }}>{bill.id}</TableCell>
+
                   <TableCell>{bill.date}</TableCell>
 
                   <TableCell>{bill.customer?.name || "Walk-in"}</TableCell>
@@ -296,6 +316,10 @@ const Reports = ({ bills, setBills, settings }) => {
               <Typography variant="body2">{settings?.shopAddress}</Typography>
 
               <Typography sx={{ mt: 1 }}>
+                Invoice No.: {selectedInvoice.id}
+              </Typography>
+
+              <Typography>
                 Date: {new Date(selectedInvoice.date).toLocaleString()}
               </Typography>
 

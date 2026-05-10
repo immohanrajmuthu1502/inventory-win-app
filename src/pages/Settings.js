@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Button, TextField } from "@mui/material";
+import { Box, Typography, Button, TextField, IconButton } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 import { normalizeAppSettings } from "../utils/appSettings";
 
 const Settings = ({ products, bills, settings, setSettings }) => {
   const [draft, setDraft] = useState(normalizeAppSettings(settings));
+  const [newCategory, setNewCategory] = useState("");
 
   useEffect(() => {
     setDraft(normalizeAppSettings(settings));
@@ -11,6 +13,27 @@ const Settings = ({ products, bills, settings, setSettings }) => {
 
   const updateDraft = (key, value) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleAddCategory = () => {
+    if (newCategory.trim() && !draft.categories.includes(newCategory)) {
+      setDraft((prev) => ({
+        ...prev,
+        categories: [...prev.categories, newCategory],
+      }));
+      setNewCategory("");
+    }
+  };
+
+  const handleDeleteCategory = (category) => {
+    if (category === "No Category") {
+      alert("Cannot delete the default category");
+      return;
+    }
+    setDraft((prev) => ({
+      ...prev,
+      categories: prev.categories.filter((c) => c !== category),
+    }));
   };
 
   const handleSaveSettings = () => {
@@ -172,48 +195,74 @@ const Settings = ({ products, bills, settings, setSettings }) => {
               </Box>
             )}
           </Box>
-
-          <Button
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3 }}
-            onClick={handleSaveSettings}
-          >
-            Save Settings
-          </Button>
         </Box>
 
-        <Box
-          sx={{
-            mt: 2,
-            p: 3,
-            border: "1px solid #ddd",
-            borderRadius: 2,
-            maxWidth: 520,
-            flex: 1,
-          }}
-        >
-          <Typography variant="h6">Export Location</Typography>
-          <TextField
-            fullWidth
-            label="Invoice / Reports Save Folder"
-            value={draft.exportPath}
-            InputProps={{ readOnly: true }}
-            sx={{ mt: 2 }}
-            placeholder="Default browser downloads folder"
-          />
-          <Button
-            fullWidth
-            variant="outlined"
-            sx={{ mt: 2 }}
-            onClick={handleChooseExportFolder}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
+          <Box
+            sx={{
+              mt: 2,
+              p: 3,
+              border: "1px solid #ddd",
+              borderRadius: 2,
+              maxWidth: 520,
+            }}
           >
-            Select Folder
-          </Button>
-          <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
-            Folder saving works in the desktop app. Browser mode will continue
-            to use normal downloads.
-          </Typography>
+            <Typography variant="h6">Export Location</Typography>
+            <TextField
+              fullWidth
+              label="Invoice / Reports Save Folder"
+              value={draft.exportPath}
+              InputProps={{ readOnly: true }}
+              sx={{ mt: 2 }}
+              placeholder="Default browser downloads folder"
+            />
+            <Button
+              fullWidth
+              variant="outlined"
+              sx={{ mt: 2 }}
+              onClick={handleChooseExportFolder}
+            >
+              Select Folder
+            </Button>
+            <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
+              Folder saving works in the desktop app. Browser mode will continue
+              to use normal downloads.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              p: 3,
+              border: "1px solid #ddd",
+              borderRadius: 2,
+              maxWidth: 520,
+            }}
+          >
+            <Typography variant="h6">Backup & Restore</Typography>
+
+            <Button
+              fullWidth
+              variant="contained"
+              sx={{ mt: 2 }}
+              onClick={handleExport}
+            >
+              Export Backup
+            </Button>
+
+            <Button fullWidth variant="outlined" component="label" sx={{ mt: 2 }}>
+              Import Backup
+              <input
+                type="file"
+                hidden
+                accept="application/json"
+                onChange={(e) => handleImport(e.target.files[0])}
+              />
+            </Button>
+
+            <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
+              Please keep backup file safe. Import will overwrite existing data.
+            </Typography>
+          </Box>
         </Box>
       </Box>
 
@@ -226,30 +275,66 @@ const Settings = ({ products, bills, settings, setSettings }) => {
           maxWidth: 520,
         }}
       >
-        <Typography variant="h6">Backup & Restore</Typography>
+        <Typography variant="h6">Product Categories</Typography>
 
-        <Button
-          fullWidth
-          variant="contained"
-          sx={{ mt: 2 }}
-          onClick={handleExport}
-        >
-          Export Backup
-        </Button>
+        <Box sx={{ mt: 2 }}>
+          <Typography sx={{ fontSize: 14, mb: 1 }}>Current Categories:</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}
+          >
+            {draft.categories.map((category) => (
+              <Box
+                key={category}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 2,
+                  py: 0.5,
+                  backgroundColor: "#e3f2fd",
+                  borderRadius: 1,
+                  border: "1px solid #90caf9",
+                }}
+              >
+                <Typography sx={{ fontSize: 14 }}>{category}</Typography>
+                {category !== "No Category" && (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleDeleteCategory(category)}
+                    sx={{ ml: 1, p: 0 }}
+                  >
+                    <DeleteIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+          </Box>
+        </Box>
 
-        <Button fullWidth variant="outlined" component="label" sx={{ mt: 2 }}>
-          Import Backup
-          <input
-            type="file"
-            hidden
-            accept="application/json"
-            onChange={(e) => handleImport(e.target.files[0])}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <TextField
+            label="New Category"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleAddCategory()}
+            size="small"
+            sx={{ flex: 1 }}
+            placeholder="e.g., Shorts, Tops"
           />
-        </Button>
+          <Button variant="outlined" onClick={handleAddCategory}>
+            Add
+          </Button>
+        </Box>
+      </Box>
 
-        <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
-          Please keep backup file safe. Import will overwrite existing data.
-        </Typography>
+      <Box sx={{ mt: 4, display: "flex", gap: 2, justifyContent: "center" }}>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={handleSaveSettings}
+          sx={{ minWidth: 200 }}
+        >
+          Save Settings
+        </Button>
       </Box>
     </Box>
   );
