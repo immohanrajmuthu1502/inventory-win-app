@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { TextField, Button, MenuItem, Box } from "@mui/material";
 
 const SimpleProductForm = ({ onSave, editingProduct, categories = ["No Category", "Jabla", "Frock", "Set"] }) => {
-  const [errors, setErrors] = useState({});
   const [product, setProduct] = useState({
     name: "",
     barcode: "",
@@ -58,8 +57,6 @@ const SimpleProductForm = ({ onSave, editingProduct, categories = ["No Category"
       newErrors.minStock = "Minimum stock cannot be negative";
     }
 
-    setErrors(newErrors);
-
     if (Object.keys(newErrors).length > 0) return;
 
     onSave({
@@ -81,8 +78,6 @@ const SimpleProductForm = ({ onSave, editingProduct, categories = ["No Category"
         packs: { 2: 0, 3: 0, 5: 0, 10: 0 },
       },
     });
-
-    setErrors({});
   };
 
   return (

@@ -38,26 +38,59 @@ const Reports = ({ bills, setBills, settings }) => {
   });
   const [invoiceSearch, setInvoiceSearch] = useState("");
 
+  const parseDate = (dateStr) => {
+    // Handle both ISO format and locale string format
+    let date = new Date(dateStr);
+    
+    // If the date is valid, return it
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    
+    // Fallback: return null if invalid
+    return null;
+  };
+
+  const getDateString = (date) => {
+    // Get date in local timezone as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const getFilteredBills = (type) => {
     const now = new Date();
+    const todayDateStr = getDateString(now);
 
     return bills.filter((bill) => {
-      const billDate = new Date(bill.date);
+      const billDate = parseDate(bill.date);
+      
+      if (!billDate) {
+        return false;
+      }
+
+      const billDateStr = getDateString(billDate);
 
       if (type === "today") {
-        return billDate.toDateString() === now.toDateString();
+        return billDateStr === todayDateStr;
       }
 
       if (type === "week") {
-        const diff = (now - billDate) / (1000 * 60 * 60 * 24);
-        return diff <= 7;
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const sevenDaysAgoStr = getDateString(sevenDaysAgo);
+        
+        return billDateStr >= sevenDaysAgoStr && billDateStr <= todayDateStr;
       }
 
       if (type === "month") {
-        return (
-          billDate.getMonth() === now.getMonth() &&
-          billDate.getFullYear() === now.getFullYear()
-        );
+        const billYear = billDate.getFullYear();
+        const billMonth = billDate.getMonth();
+        const nowYear = now.getFullYear();
+        const nowMonth = now.getMonth();
+        
+        return billYear === nowYear && billMonth === nowMonth;
       }
 
       return true; // "all"

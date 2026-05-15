@@ -17,7 +17,6 @@ import { sendInvoiceToWhatsApp } from "../utils/whatsappInvoice";
 const Billing = ({ products, setProducts, bills, setBills, settings }) => {
   const [selectedId, setSelectedId] = useState("");
   const [qty, setQty] = useState(1);
-  const [showInvoice, setShowInvoice] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [taxPercent, setTaxPercent] = useState(0);
   const [discountPercent, setDiscountPercent] = useState(0);
@@ -187,7 +186,7 @@ const Billing = ({ products, setProducts, bills, setBills, settings }) => {
       discountAmount,
       total: finalTotal,
       profit: totalProfit,
-      date: new Date().toLocaleString(),
+      date: new Date().toISOString(),
 
       // ✅ NEW FIELDS
       customer: {

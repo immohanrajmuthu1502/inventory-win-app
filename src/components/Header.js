@@ -5,8 +5,6 @@ import InventoryIcon from "@mui/icons-material/Inventory2";
 import PointOfSaleIcon from "@mui/icons-material/PointOfSale";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import SettingsIcon from "@mui/icons-material/Settings";
-import AddBoxIcon from "@mui/icons-material/AddBox";
-import PriceCheckIcon from "@mui/icons-material/PriceCheck";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Button from "@mui/material/Button";

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
-import { Link } from "react-router-dom";
 import Header from "./components/Header";
 
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
@@ -46,10 +45,7 @@ function App() {
   //   return saved ? JSON.parse(saved) : [];
   // });
 
-  const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
-  const [selectedChannel, setSelectedChannel] = useState("online");
-  const [showPack, setShowPack] = useState(false);
 
   useEffect(() => {
  const loadData = async () => {

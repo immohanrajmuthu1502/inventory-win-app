@@ -93,8 +93,9 @@ export const exportSalesToPDF = (bills, appSettings) => {
 
   autoTable(doc, {
     startY: 46,
-    head: [["Date", "Customer", "Phone", "Payment", "Items", "Total"]],
+    head: [["Invoice No.", "Date", "Customer", "Phone", "Payment", "Items", "Total"]],
     body: bills.map((b) => [
+      String(b.id),
       formatDate(b.date),
       b.customer?.name || "Walk-in",
       b.customer?.phone || "-",

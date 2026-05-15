@@ -33,6 +33,7 @@ export const exportSalesToExcel = (bills, settings) => {
   if (!bills || bills.length === 0) return;
 
   const data = bills.map((b) => ({
+    "Invoice No.": b.id,
     Date: new Date(b.date).toLocaleString(),
     Customer: b.customer?.name || "Walk-in",
     Phone: b.customer?.phone || "-",
