@@ -1,7 +1,7 @@
 {
   "name": "kutty-couture-inventory",
   "productName": "Kutty Couture",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "homepage": "./",
   "dependencies": {
@@ -11,6 +11,7 @@
     "@mui/material": "^9.0.0",
     "@mui/x-data-grid": "^9.0.2",
     "electron-store": "^8.2.0",
+    "electron-updater": "^6.1.1",
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
@@ -74,15 +75,28 @@
     },
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "portable"
       ],
       "icon": "appIcon.ico",
-      "signAndEditExecutable": false
+      "signAndEditExecutable": false,
+      "certificateFile": null,
+      "certificatePassword": null
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "immohanrajmuthu1502",
+      "repo": "inventory-win-app"
     }
   },
   "main": "electron.js"
