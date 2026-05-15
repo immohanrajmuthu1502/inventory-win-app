@@ -5,6 +5,7 @@ export const DEFAULT_APP_SETTINGS = {
   shopPhone: "9XXXXXXXXX",
   billLogo: "",
   exportPath: "",
+  dataStoragePath: "", // Empty = use default app data folder
   categories: ["No Category", "Jabla", "Frock", "Set"],
 };
 

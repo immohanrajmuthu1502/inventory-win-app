@@ -2,17 +2,49 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("path");
 const fs = require("fs");
 
-// 🔥 MUST come BEFORE Store
-app.setPath(
-  "userData",
-  path.join(app.getPath("appData"), "Kutty Couture Inventory")
-);
-
-// NOW import and create store
 const Store = require("electron-store");
-const store = new Store();
 
+let store;
 let mainWindow;
+
+// Initialize store at the correct location
+function initializeStore() {
+  const defaultStoragePath = path.join(app.getPath("appData"), "Kutty Couture Inventory");
+  const storagePointerFile = path.join(defaultStoragePath, ".storage-config");
+  
+  let activePath = defaultStoragePath;
+  
+  // Check if a custom storage pointer file exists
+  try {
+    if (fs.existsSync(storagePointerFile)) {
+      const customPath = fs.readFileSync(storagePointerFile, "utf8").trim();
+      if (customPath && fs.existsSync(customPath)) {
+        activePath = customPath;
+        console.log(`Using custom storage path: ${activePath}`);
+      } else {
+        console.log(`Custom storage path invalid, using default: ${defaultStoragePath}`);
+        // Clean up invalid pointer
+        try { fs.unlinkSync(storagePointerFile); } catch (e) {}
+      }
+    } else {
+      console.log(`Using default storage path: ${defaultStoragePath}`);
+    }
+  } catch (err) {
+    console.error("Error reading storage config:", err);
+    activePath = defaultStoragePath;
+  }
+  
+  // Set userData path for Electron
+  app.setPath("userData", activePath);
+  
+  // Create store at the active location
+  store = new Store({ cwd: activePath });
+  
+  return store;
+}
+
+// Initialize store before window creation
+initializeStore();
 
 process.on("uncaughtException", (error) => {
   console.error("UNCAUGHT EXCEPTION:", error);
@@ -114,6 +146,70 @@ ipcMain.handle("print-invoice", () => {
     silent: false,
     printBackground: true,
   });
+});
+
+// ✅ Data Storage Location Management
+ipcMain.handle("select-data-storage-folder", async () => {
+  const win = BrowserWindow.getFocusedWindow();
+  const result = await dialog.showOpenDialog(win, {
+    properties: ["openDirectory", "createDirectory"],
+    message: "Select a folder to store your inventory data (products, bills, settings)",
+  });
+
+  if (result.canceled) return "";
+  return result.filePaths[0] || "";
+});
+
+ipcMain.handle("migrate-data-to-location", async (event, newStoragePath) => {
+  try {
+    if (!newStoragePath) return { success: false, message: "Invalid path" };
+
+    // Get current data from existing store
+    const products = store.get("products") || [];
+    const bills = store.get("bills") || [];
+    const settings = store.get("settings") || {};
+
+    // Ensure new directory exists
+    await fs.promises.mkdir(newStoragePath, { recursive: true });
+
+    // Create a new store at the new location
+    const newStore = new Store({
+      cwd: newStoragePath,
+    });
+
+    // Update settings to record the custom storage path
+    const updatedSettings = {
+      ...settings,
+      dataStoragePath: newStoragePath,
+    };
+
+    // Write data to new store
+    newStore.set("products", products);
+    newStore.set("bills", bills);
+    newStore.set("settings", updatedSettings);
+
+    // Create a pointer file at default location that points to the new location
+    // This is more reliable than using electron-store for this purpose
+    const defaultStoragePath = path.join(app.getPath("appData"), "Kutty Couture Inventory");
+    await fs.promises.mkdir(defaultStoragePath, { recursive: true });
+    const storagePointerFile = path.join(defaultStoragePath, ".storage-config");
+    await fs.promises.writeFile(storagePointerFile, newStoragePath, "utf8");
+
+    console.log(`Data migrated to: ${newStoragePath}`);
+    console.log(`Pointer file created at: ${storagePointerFile}`);
+    
+    return { 
+      success: true, 
+      message: `Data successfully moved to ${newStoragePath}. Please restart the application.` 
+    };
+  } catch (err) {
+    console.error("Migration error:", err);
+    return { success: false, message: `Migration failed: ${err.message}` };
+  }
+});
+
+ipcMain.handle("get-current-storage-path", () => {
+  return app.getPath("userData");
 });
 
 app.on("window-all-closed", () => {

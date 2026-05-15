@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   setData: (key, value) => ipcRenderer.invoke("set-data", key, value),
   selectExportFolder: () => ipcRenderer.invoke("select-export-folder"),
   saveFile: (payload) => ipcRenderer.invoke("save-file", payload),
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
 });
