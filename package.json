@@ -2,6 +2,8 @@
   "name": "kutty-couture-inventory",
   "productName": "Kutty Couture",
   "version": "1.0.0",
+  "description": "Inventory management application for Kutty Couture",
+  "author": "Kutty Couture",
   "private": true,
   "homepage": "./",
   "dependencies": {
@@ -79,9 +81,7 @@
         "portable"
       ],
       "icon": "appIcon.ico",
-      "signAndEditExecutable": false,
-      "certificateFile": null,
-      "certificatePassword": null
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
