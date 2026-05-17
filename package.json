@@ -80,7 +80,7 @@
         "nsis",
         "portable"
       ],
-      "icon": "appIcon.ico",
+      "icon": "public/appIcon.ico",
       "signAndEditExecutable": false
     },
     "nsis": {

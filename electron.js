@@ -7,9 +7,13 @@ const Store = require("electron-store");
 let store;
 let mainWindow;
 
+function getDefaultStoragePath() {
+  return path.join(app.getPath("appData"), "Kutty Couture Inventory");
+}
+
 // Initialize store at the correct location
 function initializeStore() {
-  const defaultStoragePath = path.join(app.getPath("appData"), "Kutty Couture Inventory");
+  const defaultStoragePath = getDefaultStoragePath();
   const storagePointerFile = path.join(defaultStoragePath, ".storage-config");
   
   let activePath = defaultStoragePath;
@@ -190,7 +194,7 @@ ipcMain.handle("migrate-data-to-location", async (event, newStoragePath) => {
 
     // Create a pointer file at default location that points to the new location
     // This is more reliable than using electron-store for this purpose
-    const defaultStoragePath = path.join(app.getPath("appData"), "Kutty Couture Inventory");
+    const defaultStoragePath = getDefaultStoragePath();
     await fs.promises.mkdir(defaultStoragePath, { recursive: true });
     const storagePointerFile = path.join(defaultStoragePath, ".storage-config");
     await fs.promises.writeFile(storagePointerFile, newStoragePath, "utf8");
@@ -210,6 +214,17 @@ ipcMain.handle("migrate-data-to-location", async (event, newStoragePath) => {
 
 ipcMain.handle("get-current-storage-path", () => {
   return app.getPath("userData");
+});
+
+ipcMain.handle("get-storage-path-info", () => {
+  const defaultStoragePath = getDefaultStoragePath();
+  const currentStoragePath = app.getPath("userData");
+
+  return {
+    defaultStoragePath,
+    currentStoragePath,
+    isCustomStoragePath: currentStoragePath !== defaultStoragePath,
+  };
 });
 
 app.on("window-all-closed", () => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import Header from "./components/Header";
+import { Typography } from "@mui/material";
 
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import { normalizeAppSettings } from "./utils/appSettings";
@@ -34,6 +35,7 @@ function App() {
   const [bills, setBills] = useState([]);
   const [settings, setSettings] = useState(normalizeAppSettings());
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isFirstLaunch, setIsFirstLaunch] = useState(false);
 
   //   const [products, setProducts] = useState(() => {
   //   const saved = localStorage.getItem("products");
@@ -54,15 +56,17 @@ function App() {
       const data = await window.electronAPI.getData();
       setProducts(data.products || []);
       setBills(data.bills || []);
-      setSettings(normalizeAppSettings(data.settings));
+      const loadedSettings = normalizeAppSettings(data.settings);
+      setSettings(loadedSettings);
+      setIsFirstLaunch(!loadedSettings.hasCompletedSetup);
     } else {
+      const loadedSettings = normalizeAppSettings(
+        JSON.parse(localStorage.getItem("settings") || "{}"),
+      );
       setProducts(JSON.parse(localStorage.getItem("products") || "[]"));
       setBills(JSON.parse(localStorage.getItem("bills") || "[]"));
-      setSettings(
-        normalizeAppSettings(
-          JSON.parse(localStorage.getItem("settings") || "{}"),
-        ),
-      );
+      setSettings(loadedSettings);
+      setIsFirstLaunch(!loadedSettings.hasCompletedSetup);
     }
 
     setIsLoaded(true);
@@ -107,12 +111,40 @@ useEffect(() => {
 
   return (
     <Router>
-      <Header settings={settings} />
+      {isLoaded && <Header settings={settings} />}
 
       <div style={{ padding: "20px" }}>
-        <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<Dashboard products={products} bills={bills} />} />
+        {!isLoaded ? (
+          <LoadingFallback />
+        ) : (
+          <Suspense fallback={<LoadingFallback />}>
+            {isFirstLaunch ? (
+              // First Launch: Show only Settings page with a message
+              <div>
+                <div style={{ 
+                  backgroundColor: "#fff3cd", 
+                  border: "1px solid #ffc107", 
+                  padding: "16px", 
+                  borderRadius: "4px",
+                  marginBottom: "20px"
+                }}>
+                  <Typography variant="h6" style={{ color: "#856404" }}>
+                    Welcome! Please configure your settings to get started
+                  </Typography>
+                </div>
+                <Settings
+                  products={products}
+                  bills={bills}
+                  settings={settings}
+                  setSettings={setSettings}
+                  isFirstLaunch={true}
+                  onSetupComplete={() => setIsFirstLaunch(false)}
+                />
+              </div>
+            ) : (
+              // Normal: Show all routes
+              <Routes>
+                <Route path="/" element={<Dashboard products={products} bills={bills} />} />
           <Route
             path="/add-product"
             element={
@@ -175,8 +207,10 @@ useEffect(() => {
             }
           />
           <Route path="/invoice" element={<Invoice settings={settings} />} />
-        </Routes>
-        </Suspense>
+              </Routes>
+            )}
+          </Suspense>
+        )}
       </div>
     </Router>
   );

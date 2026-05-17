@@ -148,6 +148,43 @@ const Dashboard = ({ products = [], bills = [] }) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* Welcome Section with Placeholder Logo */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+          p: 3,
+          backgroundColor: "#f5f5f5",
+          borderRadius: 2,
+          mb: 2,
+        }}
+      >
+        <Box
+          sx={{
+            width: 80,
+            height: 80,
+            backgroundColor: "#e3f2fd",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "40px",
+            flex: "0 0 auto",
+          }}
+        >
+          📦
+        </Box>
+        <Box>
+          <Typography variant="h5" sx={{ fontWeight: 700 }}>
+            Welcome to Inventory Manager
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage your products, track sales, and generate reports effortlessly.
+          </Typography>
+        </Box>
+      </Box>
+
       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>

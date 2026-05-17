@@ -3,10 +3,12 @@ import { Box, Typography, Button, TextField, IconButton } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { normalizeAppSettings } from "../utils/appSettings";
 
-const Settings = ({ products, bills, settings, setSettings }) => {
+const Settings = ({ products, bills, settings, setSettings, isFirstLaunch = false, onSetupComplete = () => {} }) => {
   const [draft, setDraft] = useState(normalizeAppSettings(settings));
   const [newCategory, setNewCategory] = useState("");
   const [currentStoragePath, setCurrentStoragePath] = useState("");
+  const [defaultStoragePath, setDefaultStoragePath] = useState("");
+  const [isCustomStoragePath, setIsCustomStoragePath] = useState(false);
   const [selectedStoragePath, setSelectedStoragePath] = useState("");
   const [isMigrating, setIsMigrating] = useState(false);
 
@@ -19,10 +21,19 @@ const Settings = ({ products, bills, settings, setSettings }) => {
     const getStoragePath = async () => {
       if (window.electronAPI?.invoke) {
         try {
-          const path = await window.electronAPI.invoke("get-current-storage-path");
-          setCurrentStoragePath(path);
+          if (window.electronAPI.invoke) {
+            const storageInfo = await window.electronAPI.invoke("get-storage-path-info");
+            setDefaultStoragePath(storageInfo.defaultStoragePath || "");
+            setCurrentStoragePath(storageInfo.currentStoragePath || "");
+            setIsCustomStoragePath(Boolean(storageInfo.isCustomStoragePath));
+          }
         } catch (err) {
-          console.error("Error fetching storage path:", err);
+          try {
+            const path = await window.electronAPI.invoke("get-current-storage-path");
+            setCurrentStoragePath(path);
+          } catch (fallbackErr) {
+            console.error("Error fetching storage path:", fallbackErr);
+          }
         }
       }
     };
@@ -55,8 +66,31 @@ const Settings = ({ products, bills, settings, setSettings }) => {
   };
 
   const handleSaveSettings = () => {
-    setSettings(normalizeAppSettings(draft));
-    alert("Settings saved. Please restart the application to apply everywhere.");
+    // Validation for first launch
+    if (isFirstLaunch) {
+      if (!draft.shopName.trim()) {
+        alert("Please enter your shop name");
+        return;
+      }
+      if (!draft.shopPhone.trim()) {
+        alert("Please enter your shop phone");
+        return;
+      }
+    }
+
+    const updatedSettings = normalizeAppSettings({
+      ...draft,
+      hasCompletedSetup: true, // Mark setup as complete
+    });
+
+    setSettings(updatedSettings);
+
+    if (isFirstLaunch) {
+      alert("Setup complete! You can now use the application.");
+      onSetupComplete();
+    } else {
+      alert("Settings saved. Please restart the application to apply everywhere.");
+    }
   };
 
   const handleChooseExportFolder = async () => {
@@ -112,6 +146,7 @@ const Settings = ({ products, bills, settings, setSettings }) => {
         alert(result.message);
         setSelectedStoragePath("");
         setCurrentStoragePath(selectedStoragePath);
+        setIsCustomStoragePath(true);
       } else {
         alert("Migration failed: " + result.message);
       }
@@ -132,6 +167,12 @@ const Settings = ({ products, bills, settings, setSettings }) => {
 
   // Export Backup
   const handleExport = async () => {
+    // Validate export path is set
+    if (!draft.exportPath || !draft.exportPath.trim()) {
+      alert("Please set an export location in settings before exporting backup.");
+      return;
+    }
+
     let backup;
 
     if (window.electronAPI?.getData) {
@@ -197,7 +238,7 @@ const Settings = ({ products, bills, settings, setSettings }) => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+   <Box sx={{ p: 3 }}>
       <Typography variant="h5" gutterBottom>
         Settings
       </Typography>
@@ -267,14 +308,15 @@ const Settings = ({ products, bills, settings, setSettings }) => {
             </Box>
           </Box>
 
-          <Box
-            sx={{
-              p: 3,
-              border: "1px solid #ddd",
-              borderRadius: 2,
-            }}
-          >
-            <Typography variant="h6">Product Categories</Typography>
+          {!isFirstLaunch && (
+            <Box
+              sx={{
+                p: 3,
+                border: "1px solid #ddd",
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="h6">Product Categories</Typography>
 
             <Box sx={{ mt: 2 }}>
               <Typography sx={{ fontSize: 14, mb: 1 }}>Current Categories:</Typography>
@@ -323,135 +365,150 @@ const Settings = ({ products, bills, settings, setSettings }) => {
               </Button>
             </Box>
           </Box>
+          )}
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
-          <Box
-            sx={{
-              mt: 2,
-              p: 3,
-              border: "1px solid #ddd",
-              borderRadius: 2,
-              maxWidth: 520,
-            }}
-          >
-            <Typography variant="h6">Export Location</Typography>
-            <TextField
-              fullWidth
-              label="Invoice / Reports Save Folder"
-              value={draft.exportPath}
-              InputProps={{ readOnly: true }}
-              sx={{ mt: 2 }}
-              placeholder="Default browser downloads folder"
-            />
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{ mt: 2 }}
-              onClick={handleChooseExportFolder}
-            >
-              Select Folder
-            </Button>
-            <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
-              Folder saving works in the desktop app. Browser mode will continue
-              to use normal downloads.
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              p: 3,
-              border: "1px solid #ddd",
-              borderRadius: 2,
-              maxWidth: 520,
-            }}
-          >
-            <Typography variant="h6">Data Storage Location</Typography>
-            <TextField
-              fullWidth
-              label="Current Storage Path"
-              value={currentStoragePath}
-              InputProps={{ readOnly: true }}
-              sx={{ mt: 2 }}
-              placeholder="Default app data folder"
-              size="small"
-            />
-            <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
-              This is where your products, bills, and settings are stored.
-            </Typography>
-
-            {selectedStoragePath && (
-              <Box sx={{ mt: 2, p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
-                  Selected new location:
-                </Typography>
-                <Typography sx={{ fontSize: 12, color: "#666", mt: 0.5 }}>
-                  {selectedStoragePath}
-                </Typography>
-              </Box>
-            )}
-
-            <Button
-              fullWidth
-              variant="outlined"
-              sx={{ mt: 2 }}
-              onClick={handleSelectDataStorageFolder}
-            >
-              Choose New Storage Location
-            </Button>
-
-            {selectedStoragePath && (
-              <Button
-                fullWidth
-                variant="contained"
-                color="warning"
-                sx={{ mt: 2 }}
-                onClick={handleMigrateDataStorage}
-                disabled={isMigrating}
+          {!isFirstLaunch && (
+            <><Box
+                sx={{
+                  mt: 2,
+                  p: 3,
+                  border: "1px solid #ddd",
+                  borderRadius: 2,
+                  maxWidth: 520,
+                }}
               >
-                {isMigrating ? "Migrating..." : "Migrate Data to New Location"}
-              </Button>
-            )}
+                <Typography variant="h6">Export Location</Typography>
+                <TextField
+                  fullWidth
+                  label="Invoice / Reports Save Folder"
+                  value={draft.exportPath}
+                  InputProps={{ readOnly: true }}
+                  sx={{ mt: 2 }}
+                  placeholder="Not set - will use default downloads folder" />
+                {!draft.exportPath && (
+                  <Typography sx={{ mt: 1, fontSize: 12, color: "#d32f2f" }}>
+                    ⚠️ Export location not set. You must set this to export backups.
+                  </Typography>
+                )}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  sx={{ mt: 2 }}
+                  onClick={handleChooseExportFolder}
+                >
+                  Select Folder
+                </Button>
+                <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
+                  Folder saving works in the desktop app. Browser mode will continue
+                  to use normal downloads.
+                </Typography>
+              </Box><Box
+                sx={{
+                  p: 3,
+                  border: "1px solid #ddd",
+                  borderRadius: 2,
+                  maxWidth: 520,
+                }}
+              >
+                  <Typography variant="h6">Data Storage Location</Typography>
+                  <TextField
+                    fullWidth
+                    label="Default Storage Path"
+                    value={defaultStoragePath || "Default (AppData\\Kutty Couture Inventory)"}
+                    InputProps={{ readOnly: true }}
+                    sx={{ mt: 2 }}
+                    size="small" />
+                  <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
+                    New installations start here unless a custom storage location is selected.
+                  </Typography>
 
-            <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
-              ⚠️ Desktop app feature only. This allows you to store your data on
-              an external drive, cloud sync folder, or custom location.
-            </Typography>
-          </Box>
+                  {isCustomStoragePath && (
+                    <>
+                      <TextField
+                        fullWidth
+                        label="Current Custom Storage Path"
+                        value={currentStoragePath}
+                        InputProps={{ readOnly: true }}
+                        sx={{ mt: 2 }}
+                        size="small" />
+                      <Typography sx={{ mt: 1, fontSize: 12, color: "#777" }}>
+                        This installation is currently using the custom location above.
+                      </Typography>
+                    </>
+                  )}
 
-          <Box
-            sx={{
-              p: 3,
-              border: "1px solid #ddd",
-              borderRadius: 2,
-              maxWidth: 520,
-            }}
-          >
-            <Typography variant="h6">Backup & Restore</Typography>
+                  {selectedStoragePath && (
+                    <Box sx={{ mt: 2, p: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
+                      <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
+                        Selected new location:
+                      </Typography>
+                      <Typography sx={{ fontSize: 12, color: "#666", mt: 0.5 }}>
+                        {selectedStoragePath}
+                      </Typography>
+                    </Box>
+                  )}
 
-            <Button
-              fullWidth
-              variant="contained"
-              sx={{ mt: 2 }}
-              onClick={handleExport}
-            >
-              Export Backup
-            </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    sx={{ mt: 2 }}
+                    onClick={handleSelectDataStorageFolder}
+                  >
+                    Choose New Storage Location
+                  </Button>
 
-            <Button fullWidth variant="outlined" component="label" sx={{ mt: 2 }}>
-              Import Backup
-              <input
-                type="file"
-                hidden
-                accept="application/json"
-                onChange={(e) => handleImport(e.target.files[0])}
-              />
-            </Button>
+                  {selectedStoragePath && (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="warning"
+                      sx={{ mt: 2 }}
+                      onClick={handleMigrateDataStorage}
+                      disabled={isMigrating}
+                    >
+                      {isMigrating ? "Migrating..." : "Migrate Data to New Location"}
+                    </Button>
+                  )}
 
-            <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
-              Please keep backup file safe. Import will overwrite existing data.
-            </Typography>
-          </Box>
+                  <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
+                    ⚠️ Desktop app feature only. This allows you to store your data on
+                    an external drive, cloud sync folder, or custom location.
+                  </Typography>
+                </Box><Box
+                  sx={{
+                    p: 3,
+                    border: "1px solid #ddd",
+                    borderRadius: 2,
+                    maxWidth: 520,
+                  }}
+                >
+                  <Typography variant="h6">Backup & Restore</Typography>
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    sx={{ mt: 2 }}
+                    onClick={handleExport}
+                  >
+                    Export Backup
+                  </Button>
+
+                  <Button fullWidth variant="outlined" component="label" sx={{ mt: 2 }}>
+                    Import Backup
+                    <input
+                      type="file"
+                      hidden
+                      accept="application/json"
+                      onChange={(e) => handleImport(e.target.files[0])} />
+                  </Button>
+
+                  <Typography sx={{ mt: 2, fontSize: 12, color: "#777" }}>
+                    Please keep backup file safe. Import will overwrite existing data.
+                  </Typography>
+                </Box></>
+          )}
         </Box>
       </Box>
 
@@ -462,8 +519,49 @@ const Settings = ({ products, bills, settings, setSettings }) => {
           onClick={handleSaveSettings}
           sx={{ minWidth: 200 }}
         >
-          Save Settings
+          {isFirstLaunch ? "Complete Setup" : "Save Settings"}
         </Button>
+      </Box>
+
+      {/* About Section */}
+      <Box
+        sx={{
+          mt: 4,
+          p: 3,
+          backgroundColor: "#f5f5f5",
+          border: "1px solid #ddd",
+          borderRadius: 2,
+          maxWidth: 600,
+          margin: "40px auto 0",
+        }}
+      >
+        <Typography variant="h6" gutterBottom>
+          About This Application
+        </Typography>
+        <Box sx={{ mt: 2, fontSize: "14px", lineHeight: 1.8, color: "#666" }}>
+          <Box sx={{ mb: 1 }}>
+            <strong>Application Name:</strong> Kutty Couture Inventory Manager
+          </Box>
+          <Box sx={{ mb: 1 }}>
+            <strong>Version:</strong> 1.0.0
+          </Box>
+          <Box sx={{ mb: 1 }}>
+            <strong>Purpose:</strong> Complete inventory, billing, and reporting
+            solution for retail businesses
+          </Box>
+          <Box sx={{ mb: 1 }}>
+            <strong>Developer:</strong> Kutty Couture Team
+          </Box>
+          <Box sx={{ mb: 1 }}>
+            <strong>Features:</strong> Product management, billing, inventory
+            tracking, reports, and data backup
+          </Box>
+          <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #ddd" }}>
+            <Typography sx={{ fontSize: "12px", color: "#999" }}>
+              © 2026 Kutty Couture. All rights reserved.
+            </Typography>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
